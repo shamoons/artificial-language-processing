@@ -7,11 +7,11 @@ verify_ssl = true
 autopep8 = "*"
 
 [packages]
-sqlalchemy = "*"
 python-dotenv = "*"
 pygithub = "*"
 autopep8 = "*"
 textgenrnn = "*"
+tensorflow = "*"
 
 [requires]
 python_version = "3.7"
