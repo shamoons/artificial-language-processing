@@ -14,7 +14,7 @@ class Octoscrape:
 
     def search_repos(self):
         return self.g.search_repositories(
-            query='tensorflow stars:>=10 fork:true language:python').get_page(self.page)
+            query='machine learning stars:>=100 fork:true language:python').get_page(self.page)
 
     def get_contents(self, repo, file_extension):
         contents = repo.get_contents("")
