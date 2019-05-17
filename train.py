@@ -1,3 +1,4 @@
+import tensorflow
 from tensorflow.python.client import device_lib
 from textgenrnn import textgenrnn
 print(device_lib.list_local_devices())
