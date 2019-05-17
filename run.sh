@@ -6,6 +6,7 @@
 
 module load python/3.7.0
 module load cuda/10.0
+module load gcc/6.4.0
 
 export CUDA_HOME=/usr/local/cuda-10.0
 export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:$LD_LIBRARY_PATH
