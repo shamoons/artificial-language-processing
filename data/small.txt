@@ -4989,3 +4989,1843 @@ networks are quite computationally intensive.
 If you try this script on new data, make sure your corpus
 has at least ~100k characters. ~1M is better.
 '''
+
+from __future__ import print_function
+from keras.callbacks import LambdaCallback
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+from keras.optimizers import RMSprop
+from keras.utils.data_utils import get_file
+import numpy as np
+import random
+import sys
+import io
+
+path = get_file(
+    'nietzsche.txt',
+    origin='https://s3.amazonaws.com/text-datasets/nietzsche.txt')
+with io.open(path, encoding='utf-8') as f:
+    text = f.read().lower()
+print('corpus length:', len(text))
+
+chars = sorted(list(set(text)))
+print('total chars:', len(chars))
+char_indices = dict((c, i) for i, c in enumerate(chars))
+indices_char = dict((i, c) for i, c in enumerate(chars))
+
+# cut the text in semi-redundant sequences of maxlen characters
+maxlen = 40
+step = 3
+sentences = []
+next_chars = []
+for i in range(0, len(text) - maxlen, step):
+    sentences.append(text[i: i + maxlen])
+    next_chars.append(text[i + maxlen])
+print('nb sequences:', len(sentences))
+
+print('Vectorization...')
+x = np.zeros((len(sentences), maxlen, len(chars)), dtype=np.bool)
+y = np.zeros((len(sentences), len(chars)), dtype=np.bool)
+for i, sentence in enumerate(sentences):
+    for t, char in enumerate(sentence):
+        x[i, t, char_indices[char]] = 1
+    y[i, char_indices[next_chars[i]]] = 1
+
+
+# build the model: a single LSTM
+print('Build model...')
+model = Sequential()
+model.add(LSTM(128, input_shape=(maxlen, len(chars))))
+model.add(Dense(len(chars), activation='softmax'))
+
+optimizer = RMSprop(lr=0.01)
+model.compile(loss='categorical_crossentropy', optimizer=optimizer)
+
+
+def sample(preds, temperature=1.0):
+    # helper function to sample an index from a probability array
+    preds = np.asarray(preds).astype('float64')
+    preds = np.log(preds) / temperature
+    exp_preds = np.exp(preds)
+    preds = exp_preds / np.sum(exp_preds)
+    probas = np.random.multinomial(1, preds, 1)
+    return np.argmax(probas)
+
+
+def on_epoch_end(epoch, _):
+    # Function invoked at end of each epoch. Prints generated text.
+    print()
+    print('----- Generating text after Epoch: %d' % epoch)
+
+    start_index = random.randint(0, len(text) - maxlen - 1)
+    for diversity in [0.2, 0.5, 1.0, 1.2]:
+        print('----- diversity:', diversity)
+
+        generated = ''
+        sentence = text[start_index: start_index + maxlen]
+        generated += sentence
+        print('----- Generating with seed: "' + sentence + '"')
+        sys.stdout.write(generated)
+
+        for i in range(400):
+            x_pred = np.zeros((1, maxlen, len(chars)))
+            for t, char in enumerate(sentence):
+                x_pred[0, t, char_indices[char]] = 1.
+
+            preds = model.predict(x_pred, verbose=0)[0]
+            next_index = sample(preds, diversity)
+            next_char = indices_char[next_index]
+
+            sentence = sentence[1:] + next_char
+
+            sys.stdout.write(next_char)
+            sys.stdout.flush()
+        print()
+
+
+print_callback = LambdaCallback(on_epoch_end=on_epoch_end)
+
+model.fit(x, y,
+          batch_size=128,
+          epochs=60,
+          callbacks=[print_callback])
+# -*- coding: utf-8 -*-
+"""
+#Train an Auxiliary Classifier GAN (ACGAN) on the MNIST dataset.
+
+[More details on Auxiliary Classifier GANs.](https://arxiv.org/abs/1610.09585)
+
+You should start to see reasonable images after ~5 epochs, and good images
+by ~15 epochs. You should use a GPU, as the convolution-heavy operations are
+very slow on the CPU. Prefer the TensorFlow backend if you plan on iterating,
+as the compilation time can be a blocker using Theano.
+
+Timings:
+
+Hardware           | Backend | Time / Epoch
+:------------------|:--------|------------:
+ CPU               | TF      | 3 hrs
+ Titan X (maxwell) | TF      | 4 min
+ Titan X (maxwell) | TH      | 7 min
+
+Consult [Auxiliary Classifier Generative Adversarial Networks in Keras
+](https://github.com/lukedeo/keras-acgan) for more information and example output.
+"""
+from __future__ import print_function
+
+from collections import defaultdict
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+from PIL import Image
+
+from six.moves import range
+
+from keras.datasets import mnist
+from keras import layers
+from keras.layers import Input, Dense, Reshape, Flatten, Embedding, Dropout
+from keras.layers import BatchNormalization
+from keras.layers.advanced_activations import LeakyReLU
+from keras.layers.convolutional import Conv2DTranspose, Conv2D
+from keras.models import Sequential, Model
+from keras.optimizers import Adam
+from keras.utils.generic_utils import Progbar
+import numpy as np
+
+np.random.seed(1337)
+num_classes = 10
+
+
+def build_generator(latent_size):
+    # we will map a pair of (z, L), where z is a latent vector and L is a
+    # label drawn from P_c, to image space (..., 28, 28, 1)
+    cnn = Sequential()
+
+    cnn.add(Dense(3 * 3 * 384, input_dim=latent_size, activation='relu'))
+    cnn.add(Reshape((3, 3, 384)))
+
+    # upsample to (7, 7, ...)
+    cnn.add(Conv2DTranspose(192, 5, strides=1, padding='valid',
+                            activation='relu',
+                            kernel_initializer='glorot_normal'))
+    cnn.add(BatchNormalization())
+
+    # upsample to (14, 14, ...)
+    cnn.add(Conv2DTranspose(96, 5, strides=2, padding='same',
+                            activation='relu',
+                            kernel_initializer='glorot_normal'))
+    cnn.add(BatchNormalization())
+
+    # upsample to (28, 28, ...)
+    cnn.add(Conv2DTranspose(1, 5, strides=2, padding='same',
+                            activation='tanh',
+                            kernel_initializer='glorot_normal'))
+
+    # this is the z space commonly referred to in GAN papers
+    latent = Input(shape=(latent_size, ))
+
+    # this will be our label
+    image_class = Input(shape=(1,), dtype='int32')
+
+    cls = Embedding(num_classes, latent_size,
+                    embeddings_initializer='glorot_normal')(image_class)
+
+    # hadamard product between z-space and a class conditional embedding
+    h = layers.multiply([latent, cls])
+
+    fake_image = cnn(h)
+
+    return Model([latent, image_class], fake_image)
+
+
+def build_discriminator():
+    # build a relatively standard conv net, with LeakyReLUs as suggested in
+    # the reference paper
+    cnn = Sequential()
+
+    cnn.add(Conv2D(32, 3, padding='same', strides=2,
+                   input_shape=(28, 28, 1)))
+    cnn.add(LeakyReLU(0.2))
+    cnn.add(Dropout(0.3))
+
+    cnn.add(Conv2D(64, 3, padding='same', strides=1))
+    cnn.add(LeakyReLU(0.2))
+    cnn.add(Dropout(0.3))
+
+    cnn.add(Conv2D(128, 3, padding='same', strides=2))
+    cnn.add(LeakyReLU(0.2))
+    cnn.add(Dropout(0.3))
+
+    cnn.add(Conv2D(256, 3, padding='same', strides=1))
+    cnn.add(LeakyReLU(0.2))
+    cnn.add(Dropout(0.3))
+
+    cnn.add(Flatten())
+
+    image = Input(shape=(28, 28, 1))
+
+    features = cnn(image)
+
+    # first output (name=generation) is whether or not the discriminator
+    # thinks the image that is being shown is fake, and the second output
+    # (name=auxiliary) is the class that the discriminator thinks the image
+    # belongs to.
+    fake = Dense(1, activation='sigmoid', name='generation')(features)
+    aux = Dense(num_classes, activation='softmax', name='auxiliary')(features)
+
+    return Model(image, [fake, aux])
+
+
+if __name__ == '__main__':
+
+    # batch and latent size taken from the paper
+    epochs = 100
+    batch_size = 100
+    latent_size = 100
+
+    # Adam parameters suggested in https://arxiv.org/abs/1511.06434
+    adam_lr = 0.0002
+    adam_beta_1 = 0.5
+
+    # build the discriminator
+    print('Discriminator model:')
+    discriminator = build_discriminator()
+    discriminator.compile(
+        optimizer=Adam(lr=adam_lr, beta_1=adam_beta_1),
+        loss=['binary_crossentropy', 'sparse_categorical_crossentropy']
+    )
+    discriminator.summary()
+
+    # build the generator
+    generator = build_generator(latent_size)
+
+    latent = Input(shape=(latent_size, ))
+    image_class = Input(shape=(1,), dtype='int32')
+
+    # get a fake image
+    fake = generator([latent, image_class])
+
+    # we only want to be able to train generation for the combined model
+    discriminator.trainable = False
+    fake, aux = discriminator(fake)
+    combined = Model([latent, image_class], [fake, aux])
+
+    print('Combined model:')
+    combined.compile(
+        optimizer=Adam(lr=adam_lr, beta_1=adam_beta_1),
+        loss=['binary_crossentropy', 'sparse_categorical_crossentropy']
+    )
+    combined.summary()
+
+    # get our mnist data, and force it to be of shape (..., 28, 28, 1) with
+    # range [-1, 1]
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    x_train = (x_train.astype(np.float32) - 127.5) / 127.5
+    x_train = np.expand_dims(x_train, axis=-1)
+
+    x_test = (x_test.astype(np.float32) - 127.5) / 127.5
+    x_test = np.expand_dims(x_test, axis=-1)
+
+    num_train, num_test = x_train.shape[0], x_test.shape[0]
+
+    train_history = defaultdict(list)
+    test_history = defaultdict(list)
+
+    for epoch in range(1, epochs + 1):
+        print('Epoch {}/{}'.format(epoch, epochs))
+
+        num_batches = int(np.ceil(x_train.shape[0] / float(batch_size)))
+        progress_bar = Progbar(target=num_batches)
+
+        epoch_gen_loss = []
+        epoch_disc_loss = []
+
+        for index in range(num_batches):
+            # get a batch of real images
+            image_batch = x_train[index * batch_size:(index + 1) * batch_size]
+            label_batch = y_train[index * batch_size:(index + 1) * batch_size]
+
+            # generate a new batch of noise
+            noise = np.random.uniform(-1, 1, (len(image_batch), latent_size))
+
+            # sample some labels from p_c
+            sampled_labels = np.random.randint(
+                0, num_classes, len(image_batch))
+
+            # generate a batch of fake images, using the generated labels as a
+            # conditioner. We reshape the sampled labels to be
+            # (len(image_batch), 1) so that we can feed them into the embedding
+            # layer as a length one sequence
+            generated_images = generator.predict(
+                [noise, sampled_labels.reshape((-1, 1))], verbose=0)
+
+            x = np.concatenate((image_batch, generated_images))
+
+            # use one-sided soft real/fake labels
+            # Salimans et al., 2016
+            # https://arxiv.org/pdf/1606.03498.pdf (Section 3.4)
+            soft_zero, soft_one = 0, 0.95
+            y = np.array(
+                [soft_one] * len(image_batch) + [soft_zero] * len(image_batch))
+            aux_y = np.concatenate((label_batch, sampled_labels), axis=0)
+
+            # we don't want the discriminator to also maximize the classification
+            # accuracy of the auxiliary classifier on generated images, so we
+            # don't train discriminator to produce class labels for generated
+            # images (see https://openreview.net/forum?id=rJXTf9Bxg).
+            # To preserve sum of sample weights for the auxiliary classifier,
+            # we assign sample weight of 2 to the real images.
+            disc_sample_weight = [np.ones(2 * len(image_batch)),
+                                  np.concatenate((np.ones(len(image_batch)) * 2,
+                                                  np.zeros(len(image_batch))))]
+
+            # see if the discriminator can figure itself out...
+            epoch_disc_loss.append(discriminator.train_on_batch(
+                x, [y, aux_y], sample_weight=disc_sample_weight))
+
+            # make new noise. we generate 2 * batch size here such that we have
+            # the generator optimize over an identical number of images as the
+            # discriminator
+            noise = np.random.uniform(-1, 1,
+                                      (2 * len(image_batch), latent_size))
+            sampled_labels = np.random.randint(
+                0, num_classes, 2 * len(image_batch))
+
+            # we want to train the generator to trick the discriminator
+            # For the generator, we want all the {fake, not-fake} labels to say
+            # not-fake
+            trick = np.ones(2 * len(image_batch)) * soft_one
+
+            epoch_gen_loss.append(combined.train_on_batch(
+                [noise, sampled_labels.reshape((-1, 1))],
+                [trick, sampled_labels]))
+
+            progress_bar.update(index + 1)
+
+        print('Testing for epoch {}:'.format(epoch))
+
+        # evaluate the testing loss here
+
+        # generate a new batch of noise
+        noise = np.random.uniform(-1, 1, (num_test, latent_size))
+
+        # sample some labels from p_c and generate images from them
+        sampled_labels = np.random.randint(0, num_classes, num_test)
+        generated_images = generator.predict(
+            [noise, sampled_labels.reshape((-1, 1))], verbose=False)
+
+        x = np.concatenate((x_test, generated_images))
+        y = np.array([1] * num_test + [0] * num_test)
+        aux_y = np.concatenate((y_test, sampled_labels), axis=0)
+
+        # see if the discriminator can figure itself out...
+        discriminator_test_loss = discriminator.evaluate(
+            x, [y, aux_y], verbose=False)
+
+        discriminator_train_loss = np.mean(np.array(epoch_disc_loss), axis=0)
+
+        # make new noise
+        noise = np.random.uniform(-1, 1, (2 * num_test, latent_size))
+        sampled_labels = np.random.randint(0, num_classes, 2 * num_test)
+
+        trick = np.ones(2 * num_test)
+
+        generator_test_loss = combined.evaluate(
+            [noise, sampled_labels.reshape((-1, 1))],
+            [trick, sampled_labels], verbose=False)
+
+        generator_train_loss = np.mean(np.array(epoch_gen_loss), axis=0)
+
+        # generate an epoch report on performance
+        train_history['generator'].append(generator_train_loss)
+        train_history['discriminator'].append(discriminator_train_loss)
+
+        test_history['generator'].append(generator_test_loss)
+        test_history['discriminator'].append(discriminator_test_loss)
+
+        print('{0:<22s} | {1:4s} | {2:15s} | {3:5s}'.format(
+            'component', *discriminator.metrics_names))
+        print('-' * 65)
+
+        ROW_FMT = '{0:<22s} | {1:<4.2f} | {2:<15.4f} | {3:<5.4f}'
+        print(ROW_FMT.format('generator (train)',
+                             *train_history['generator'][-1]))
+        print(ROW_FMT.format('generator (test)',
+                             *test_history['generator'][-1]))
+        print(ROW_FMT.format('discriminator (train)',
+                             *train_history['discriminator'][-1]))
+        print(ROW_FMT.format('discriminator (test)',
+                             *test_history['discriminator'][-1]))
+
+        # save weights every epoch
+        generator.save_weights(
+            'params_generator_epoch_{0:03d}.hdf5'.format(epoch), True)
+        discriminator.save_weights(
+            'params_discriminator_epoch_{0:03d}.hdf5'.format(epoch), True)
+
+        # generate some digits to display
+        num_rows = 40
+        noise = np.tile(np.random.uniform(-1, 1, (num_rows, latent_size)),
+                        (num_classes, 1))
+
+        sampled_labels = np.array([
+            [i] * num_rows for i in range(num_classes)
+        ]).reshape(-1, 1)
+
+        # get a batch to display
+        generated_images = generator.predict(
+            [noise, sampled_labels], verbose=0)
+
+        # prepare real images sorted by class label
+        real_labels = y_train[(epoch - 1) * num_rows * num_classes:
+                              epoch * num_rows * num_classes]
+        indices = np.argsort(real_labels, axis=0)
+        real_images = x_train[(epoch - 1) * num_rows * num_classes:
+                              epoch * num_rows * num_classes][indices]
+
+        # display generated images, white separator, real images
+        img = np.concatenate(
+            (generated_images,
+             np.repeat(np.ones_like(x_train[:1]), num_rows, axis=0),
+             real_images))
+
+        # arrange them into a grid
+        img = (np.concatenate([r.reshape(-1, 28)
+                               for r in np.split(img, 2 * num_classes + 1)
+                               ], axis=-1) * 127.5 + 127.5).astype(np.uint8)
+
+        Image.fromarray(img).save(
+            'plot_epoch_{0:03d}_generated.png'.format(epoch))
+
+    with open('acgan-history.pkl', 'wb') as f:
+        pickle.dump({'train': train_history, 'test': test_history}, f)
+'''Trains a simple convnet on the MNIST dataset.
+
+Gets to 99.25% test accuracy after 12 epochs
+(there is still a lot of margin for parameter tuning).
+16 seconds per epoch on a GRID K520 GPU.
+'''
+
+from __future__ import print_function
+import keras
+from keras.datasets import mnist
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Flatten
+from keras.layers import Conv2D, MaxPooling2D
+from keras import backend as K
+
+batch_size = 128
+num_classes = 10
+epochs = 12
+
+# input image dimensions
+img_rows, img_cols = 28, 28
+
+# the data, split between train and test sets
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+if K.image_data_format() == 'channels_first':
+    x_train = x_train.reshape(x_train.shape[0], 1, img_rows, img_cols)
+    x_test = x_test.reshape(x_test.shape[0], 1, img_rows, img_cols)
+    input_shape = (1, img_rows, img_cols)
+else:
+    x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 1)
+    x_test = x_test.reshape(x_test.shape[0], img_rows, img_cols, 1)
+    input_shape = (img_rows, img_cols, 1)
+
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+x_train /= 255
+x_test /= 255
+print('x_train shape:', x_train.shape)
+print(x_train.shape[0], 'train samples')
+print(x_test.shape[0], 'test samples')
+
+# convert class vectors to binary class matrices
+y_train = keras.utils.to_categorical(y_train, num_classes)
+y_test = keras.utils.to_categorical(y_test, num_classes)
+
+model = Sequential()
+model.add(Conv2D(32, kernel_size=(3, 3),
+                 activation='relu',
+                 input_shape=input_shape))
+model.add(Conv2D(64, (3, 3), activation='relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
+model.add(Flatten())
+model.add(Dense(128, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(num_classes, activation='softmax'))
+
+model.compile(loss=keras.losses.categorical_crossentropy,
+              optimizer=keras.optimizers.Adadelta(),
+              metrics=['accuracy'])
+
+model.fit(x_train, y_train,
+          batch_size=batch_size,
+          epochs=epochs,
+          verbose=1,
+          validation_data=(x_test, y_test))
+score = model.evaluate(x_test, y_test, verbose=0)
+print('Test loss:', score[0])
+print('Test accuracy:', score[1])
+'''MNIST classification with TensorFlow's Dataset API.
+
+Introduced in TensorFlow 1.3, the Dataset API is now the
+standard method for loading data into TensorFlow models.
+A Dataset is a sequence of elements, which are themselves
+composed of tf.Tensor components. For more details, see:
+https://www.tensorflow.org/programmers_guide/datasets
+
+To use this with Keras, we make a dataset out of elements
+of the form (input batch, output batch). From there, we
+create a one-shot iterator and a graph node corresponding
+to its get_next() method. Its components are then provided
+to the network's Input layer and the Model.compile() method,
+respectively.
+
+This example is intended to closely follow the
+mnist_tfrecord.py example.
+'''
+import numpy as np
+import os
+import tempfile
+
+import keras
+from keras import backend as K
+from keras import layers
+from keras.datasets import mnist
+
+import tensorflow as tf
+
+
+if K.backend() != 'tensorflow':
+    raise RuntimeError('This example can only run with the TensorFlow backend,'
+                       ' because it requires the Datset API, which is not'
+                       ' supported on other platforms.')
+
+
+def cnn_layers(inputs):
+    x = layers.Conv2D(32, (3, 3),
+                      activation='relu', padding='valid')(inputs)
+    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = layers.Conv2D(64, (3, 3), activation='relu')(x)
+    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = layers.Flatten()(x)
+    x = layers.Dense(512, activation='relu')(x)
+    x = layers.Dropout(0.5)(x)
+    predictions = layers.Dense(num_classes,
+                               activation='softmax',
+                               name='x_train_out')(x)
+    return predictions
+
+
+batch_size = 128
+buffer_size = 10000
+steps_per_epoch = int(np.ceil(60000 / float(batch_size)))  # = 469
+epochs = 5
+num_classes = 10
+
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+x_train = x_train.astype(np.float32) / 255
+x_train = np.expand_dims(x_train, -1)
+y_train = tf.one_hot(y_train, num_classes)
+
+# Create the dataset and its associated one-shot iterator.
+dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+dataset = dataset.repeat()
+dataset = dataset.shuffle(buffer_size)
+dataset = dataset.batch(batch_size)
+iterator = dataset.make_one_shot_iterator()
+
+# Model creation using tensors from the get_next() graph node.
+inputs, targets = iterator.get_next()
+model_input = layers.Input(tensor=inputs)
+model_output = cnn_layers(model_input)
+train_model = keras.models.Model(inputs=model_input, outputs=model_output)
+
+train_model.compile(optimizer=keras.optimizers.RMSprop(lr=2e-3, decay=1e-5),
+                    loss='categorical_crossentropy',
+                    metrics=['accuracy'],
+                    target_tensors=[targets])
+train_model.summary()
+
+train_model.fit(epochs=epochs,
+                steps_per_epoch=steps_per_epoch)
+
+# Save the model weights.
+weight_path = os.path.join(tempfile.gettempdir(), 'saved_wt.h5')
+train_model.save_weights(weight_path)
+
+# Clean up the TF session.
+K.clear_session()
+
+# Second session to test loading trained model without tensors.
+x_test = x_test.astype(np.float32)
+x_test = np.expand_dims(x_test, -1)
+
+x_test_inp = layers.Input(shape=x_test.shape[1:])
+test_out = cnn_layers(x_test_inp)
+test_model = keras.models.Model(inputs=x_test_inp, outputs=test_out)
+
+test_model.load_weights(weight_path)
+test_model.compile(optimizer='rmsprop',
+                   loss='sparse_categorical_crossentropy',
+                   metrics=['accuracy'])
+test_model.summary()
+
+loss, acc = test_model.evaluate(x_test, y_test, num_classes)
+print('\nTest accuracy: {0}'.format(acc))
+'''Trains a denoising autoencoder on MNIST dataset.
+
+Denoising is one of the classic applications of autoencoders.
+The denoising process removes unwanted noise that corrupted the
+true signal.
+
+Noise + Data ---> Denoising Autoencoder ---> Data
+
+Given a training dataset of corrupted data as input and
+true signal as output, a denoising autoencoder can recover the
+hidden structure to generate clean data.
+
+This example has modular design. The encoder, decoder and autoencoder
+are 3 models that share weights. For example, after training the
+autoencoder, the encoder can be used to  generate latent vectors
+of input data for low-dim visualization like PCA or TSNE.
+'''
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+import keras
+from keras.layers import Activation, Dense, Input
+from keras.layers import Conv2D, Flatten
+from keras.layers import Reshape, Conv2DTranspose
+from keras.models import Model
+from keras import backend as K
+from keras.datasets import mnist
+import numpy as np
+import matplotlib.pyplot as plt
+from PIL import Image
+
+np.random.seed(1337)
+
+# MNIST dataset
+(x_train, _), (x_test, _) = mnist.load_data()
+
+image_size = x_train.shape[1]
+x_train = np.reshape(x_train, [-1, image_size, image_size, 1])
+x_test = np.reshape(x_test, [-1, image_size, image_size, 1])
+x_train = x_train.astype('float32') / 255
+x_test = x_test.astype('float32') / 255
+
+# Generate corrupted MNIST images by adding noise with normal dist
+# centered at 0.5 and std=0.5
+noise = np.random.normal(loc=0.5, scale=0.5, size=x_train.shape)
+x_train_noisy = x_train + noise
+noise = np.random.normal(loc=0.5, scale=0.5, size=x_test.shape)
+x_test_noisy = x_test + noise
+
+x_train_noisy = np.clip(x_train_noisy, 0., 1.)
+x_test_noisy = np.clip(x_test_noisy, 0., 1.)
+
+# Network parameters
+input_shape = (image_size, image_size, 1)
+batch_size = 128
+kernel_size = 3
+latent_dim = 16
+# Encoder/Decoder number of CNN layers and filters per layer
+layer_filters = [32, 64]
+
+# Build the Autoencoder Model
+# First build the Encoder Model
+inputs = Input(shape=input_shape, name='encoder_input')
+x = inputs
+# Stack of Conv2D blocks
+# Notes:
+# 1) Use Batch Normalization before ReLU on deep networks
+# 2) Use MaxPooling2D as alternative to strides>1
+# - faster but not as good as strides>1
+for filters in layer_filters:
+    x = Conv2D(filters=filters,
+               kernel_size=kernel_size,
+               strides=2,
+               activation='relu',
+               padding='same')(x)
+
+# Shape info needed to build Decoder Model
+shape = K.int_shape(x)
+
+# Generate the latent vector
+x = Flatten()(x)
+latent = Dense(latent_dim, name='latent_vector')(x)
+
+# Instantiate Encoder Model
+encoder = Model(inputs, latent, name='encoder')
+encoder.summary()
+
+# Build the Decoder Model
+latent_inputs = Input(shape=(latent_dim,), name='decoder_input')
+x = Dense(shape[1] * shape[2] * shape[3])(latent_inputs)
+x = Reshape((shape[1], shape[2], shape[3]))(x)
+
+# Stack of Transposed Conv2D blocks
+# Notes:
+# 1) Use Batch Normalization before ReLU on deep networks
+# 2) Use UpSampling2D as alternative to strides>1
+# - faster but not as good as strides>1
+for filters in layer_filters[::-1]:
+    x = Conv2DTranspose(filters=filters,
+                        kernel_size=kernel_size,
+                        strides=2,
+                        activation='relu',
+                        padding='same')(x)
+
+x = Conv2DTranspose(filters=1,
+                    kernel_size=kernel_size,
+                    padding='same')(x)
+
+outputs = Activation('sigmoid', name='decoder_output')(x)
+
+# Instantiate Decoder Model
+decoder = Model(latent_inputs, outputs, name='decoder')
+decoder.summary()
+
+# Autoencoder = Encoder + Decoder
+# Instantiate Autoencoder Model
+autoencoder = Model(inputs, decoder(encoder(inputs)), name='autoencoder')
+autoencoder.summary()
+
+autoencoder.compile(loss='mse', optimizer='adam')
+
+# Train the autoencoder
+autoencoder.fit(x_train_noisy,
+                x_train,
+                validation_data=(x_test_noisy, x_test),
+                epochs=30,
+                batch_size=batch_size)
+
+# Predict the Autoencoder output from corrupted test images
+x_decoded = autoencoder.predict(x_test_noisy)
+
+# Display the 1st 8 corrupted and denoised images
+rows, cols = 10, 30
+num = rows * cols
+imgs = np.concatenate([x_test[:num], x_test_noisy[:num], x_decoded[:num]])
+imgs = imgs.reshape((rows * 3, cols, image_size, image_size))
+imgs = np.vstack(np.split(imgs, rows, axis=1))
+imgs = imgs.reshape((rows * 3, -1, image_size, image_size))
+imgs = np.vstack([np.hstack(i) for i in imgs])
+imgs = (imgs * 255).astype(np.uint8)
+plt.figure()
+plt.axis('off')
+plt.title('Original images: top rows, '
+          'Corrupted Input: middle rows, '
+          'Denoised Input:  third rows')
+plt.imshow(imgs, interpolation='none', cmap='gray')
+Image.fromarray(imgs).save('corrupted_and_denoised.png')
+plt.show()
+"""Example of using Hierarchical RNN (HRNN) to classify MNIST digits.
+
+HRNNs can learn across multiple levels
+of temporal hierarchy over a complex sequence.
+Usually, the first recurrent layer of an HRNN
+encodes a sentence (e.g. of word vectors)
+into a  sentence vector.
+The second recurrent layer then encodes a sequence of
+such vectors (encoded by the first layer) into a document vector.
+This document vector is considered to preserve both
+the word-level and sentence-level structure of the context.
+
+# References
+
+- [A Hierarchical Neural Autoencoder for Paragraphs and Documents]
+    (https://arxiv.org/abs/1506.01057)
+    Encodes paragraphs and documents with HRNN.
+    Results have shown that HRNN outperforms standard
+    RNNs and may play some role in more sophisticated generation tasks like
+    summarization or question answering.
+- [Hierarchical recurrent neural network for skeleton based action recognition]
+    (http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=7298714)
+    Achieved state-of-the-art results on
+    skeleton based action recognition with 3 levels
+    of bidirectional HRNN combined with fully connected layers.
+
+In the below MNIST example the first LSTM layer first encodes every
+column of pixels of shape (28, 1) to a column vector of shape (128,).
+The second LSTM layer encodes then these 28 column vectors of shape (28, 128)
+to a image vector representing the whole image.
+A final Dense layer is added for prediction.
+
+After 5 epochs: train acc: 0.9858, val acc: 0.9864
+"""
+from __future__ import print_function
+
+import keras
+from keras.datasets import mnist
+from keras.models import Model
+from keras.layers import Input, Dense, TimeDistributed
+from keras.layers import LSTM
+
+# Training parameters.
+batch_size = 32
+num_classes = 10
+epochs = 5
+
+# Embedding dimensions.
+row_hidden = 128
+col_hidden = 128
+
+# The data, split between train and test sets.
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+# Reshapes data to 4D for Hierarchical RNN.
+x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
+x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+x_train /= 255
+x_test /= 255
+print('x_train shape:', x_train.shape)
+print(x_train.shape[0], 'train samples')
+print(x_test.shape[0], 'test samples')
+
+# Converts class vectors to binary class matrices.
+y_train = keras.utils.to_categorical(y_train, num_classes)
+y_test = keras.utils.to_categorical(y_test, num_classes)
+
+row, col, pixel = x_train.shape[1:]
+
+# 4D input.
+x = Input(shape=(row, col, pixel))
+
+# Encodes a row of pixels using TimeDistributed Wrapper.
+encoded_rows = TimeDistributed(LSTM(row_hidden))(x)
+
+# Encodes columns of encoded rows.
+encoded_columns = LSTM(col_hidden)(encoded_rows)
+
+# Final predictions and model.
+prediction = Dense(num_classes, activation='softmax')(encoded_columns)
+model = Model(x, prediction)
+model.compile(loss='categorical_crossentropy',
+              optimizer='rmsprop',
+              metrics=['accuracy'])
+
+# Training.
+model.fit(x_train, y_train,
+          batch_size=batch_size,
+          epochs=epochs,
+          verbose=1,
+          validation_data=(x_test, y_test))
+
+# Evaluation.
+scores = model.evaluate(x_test, y_test, verbose=0)
+print('Test loss:', scores[0])
+print('Test accuracy:', scores[1])
+'''This is a reproduction of the IRNN experiment
+with pixel-by-pixel sequential MNIST in
+"A Simple Way to Initialize Recurrent Networks of Rectified Linear Units"
+by Quoc V. Le, Navdeep Jaitly, Geoffrey E. Hinton
+
+arxiv:1504.00941v2 [cs.NE] 7 Apr 2015
+http://arxiv.org/pdf/1504.00941v2.pdf
+
+Optimizer is replaced with RMSprop which yields more stable and steady
+improvement.
+
+Reaches 0.93 train/test accuracy after 900 epochs
+(which roughly corresponds to 1687500 steps in the original paper.)
+'''
+
+from __future__ import print_function
+
+import keras
+from keras.datasets import mnist
+from keras.models import Sequential
+from keras.layers import Dense, Activation
+from keras.layers import SimpleRNN
+from keras import initializers
+from keras.optimizers import RMSprop
+
+batch_size = 32
+num_classes = 10
+epochs = 200
+hidden_units = 100
+
+learning_rate = 1e-6
+clip_norm = 1.0
+
+# the data, split between train and test sets
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+x_train = x_train.reshape(x_train.shape[0], -1, 1)
+x_test = x_test.reshape(x_test.shape[0], -1, 1)
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+x_train /= 255
+x_test /= 255
+print('x_train shape:', x_train.shape)
+print(x_train.shape[0], 'train samples')
+print(x_test.shape[0], 'test samples')
+
+# convert class vectors to binary class matrices
+y_train = keras.utils.to_categorical(y_train, num_classes)
+y_test = keras.utils.to_categorical(y_test, num_classes)
+
+print('Evaluate IRNN...')
+model = Sequential()
+model.add(SimpleRNN(hidden_units,
+                    kernel_initializer=initializers.RandomNormal(stddev=0.001),
+                    recurrent_initializer=initializers.Identity(gain=1.0),
+                    activation='relu',
+                    input_shape=x_train.shape[1:]))
+model.add(Dense(num_classes))
+model.add(Activation('softmax'))
+rmsprop = RMSprop(lr=learning_rate)
+model.compile(loss='categorical_crossentropy',
+              optimizer=rmsprop,
+              metrics=['accuracy'])
+
+model.fit(x_train, y_train,
+          batch_size=batch_size,
+          epochs=epochs,
+          verbose=1,
+          validation_data=(x_test, y_test))
+
+scores = model.evaluate(x_test, y_test, verbose=0)
+print('IRNN test score:', scores[0])
+print('IRNN test accuracy:', scores[1])
+'''Trains a simple deep NN on the MNIST dataset.
+
+Gets to 98.40% test accuracy after 20 epochs
+(there is *a lot* of margin for parameter tuning).
+2 seconds per epoch on a K520 GPU.
+'''
+
+from __future__ import print_function
+
+import keras
+from keras.datasets import mnist
+from keras.models import Sequential
+from keras.layers import Dense, Dropout
+from keras.optimizers import RMSprop
+
+batch_size = 128
+num_classes = 10
+epochs = 20
+
+# the data, split between train and test sets
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+x_train = x_train.reshape(60000, 784)
+x_test = x_test.reshape(10000, 784)
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+x_train /= 255
+x_test /= 255
+print(x_train.shape[0], 'train samples')
+print(x_test.shape[0], 'test samples')
+
+# convert class vectors to binary class matrices
+y_train = keras.utils.to_categorical(y_train, num_classes)
+y_test = keras.utils.to_categorical(y_test, num_classes)
+
+model = Sequential()
+model.add(Dense(512, activation='relu', input_shape=(784,)))
+model.add(Dropout(0.2))
+model.add(Dense(512, activation='relu'))
+model.add(Dropout(0.2))
+model.add(Dense(num_classes, activation='softmax'))
+
+model.summary()
+
+model.compile(loss='categorical_crossentropy',
+              optimizer=RMSprop(),
+              metrics=['accuracy'])
+
+history = model.fit(x_train, y_train,
+                    batch_size=batch_size,
+                    epochs=epochs,
+                    verbose=1,
+                    validation_data=(x_test, y_test))
+score = model.evaluate(x_test, y_test, verbose=0)
+print('Test loss:', score[0])
+print('Test accuracy:', score[1])
+'''This is an implementation of Net2Net experiment with MNIST in
+'Net2Net: Accelerating Learning via Knowledge Transfer'
+by Tianqi Chen, Ian Goodfellow, and Jonathon Shlens
+
+arXiv:1511.05641v4 [cs.LG] 23 Apr 2016
+http://arxiv.org/abs/1511.05641
+
+# Notes
+
+- What:
+  + Net2Net is a group of methods to transfer knowledge from a teacher neural
+    net to a student net,so that the student net can be trained faster than
+    from scratch.
+  + The paper discussed two specific methods of Net2Net, i.e. Net2WiderNet
+    and Net2DeeperNet.
+  + Net2WiderNet replaces a model with an equivalent wider model that has
+    more units in each hidden layer.
+  + Net2DeeperNet replaces a model with an equivalent deeper model.
+  + Both are based on the idea of 'function-preserving transformations of
+    neural nets'.
+- Why:
+  + Enable fast exploration of multiple neural nets in experimentation and
+    design process,by creating a series of wider and deeper models with
+    transferable knowledge.
+  + Enable 'lifelong learning system' by gradually adjusting model complexity
+    to data availability,and reusing transferable knowledge.
+
+# Experiments
+
+- Teacher model: a basic CNN model trained on MNIST for 3 epochs.
+- Net2WiderNet experiment:
+  + Student model has a wider Conv2D layer and a wider FC layer.
+  + Comparison of 'random-padding' vs 'net2wider' weight initialization.
+  + With both methods, after 1 epoch, student model should perform as well as
+    teacher model, but 'net2wider' is slightly better.
+- Net2DeeperNet experiment:
+  + Student model has an extra Conv2D layer and an extra FC layer.
+  + Comparison of 'random-init' vs 'net2deeper' weight initialization.
+  + After 1 epoch, performance of 'net2deeper' is better than 'random-init'.
+- Hyper-parameters:
+  + SGD with momentum=0.9 is used for training teacher and student models.
+  + Learning rate adjustment: it's suggested to reduce learning rate
+    to 1/10 for student model.
+  + Addition of noise in 'net2wider' is used to break weight symmetry
+    and thus enable full capacity of student models. It is optional
+    when a Dropout layer is used.
+
+# Results
+
+- Tested with TF backend and 'channels_last' image_data_format.
+- Running on GPU GeForce GTX Titan X Maxwell
+- Performance Comparisons - validation loss values during first 3 epochs:
+
+Teacher model ...
+(0) teacher_model:             0.0537   0.0354   0.0356
+
+Experiment of Net2WiderNet ...
+(1) wider_random_pad:          0.0320   0.0317   0.0289
+(2) wider_net2wider:           0.0271   0.0274   0.0270
+
+Experiment of Net2DeeperNet ...
+(3) deeper_random_init:        0.0682   0.0506   0.0468
+(4) deeper_net2deeper:         0.0292   0.0294   0.0286
+'''
+
+from __future__ import print_function
+import numpy as np
+import keras
+from keras import backend as K
+from keras.models import Sequential
+from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten
+from keras.optimizers import SGD
+from keras.datasets import mnist
+
+if K.image_data_format() == 'channels_first':
+    input_shape = (1, 28, 28)  # image shape
+else:
+    input_shape = (28, 28, 1)  # image shape
+num_classes = 10  # number of classes
+epochs = 3
+
+
+# load and pre-process data
+def preprocess_input(x):
+    return x.astype('float32').reshape((-1,) + input_shape) / 255
+
+
+def preprocess_output(y):
+    return keras.utils.to_categorical(y)
+
+
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+x_train, x_test = map(preprocess_input, [x_train, x_test])
+y_train, y_test = map(preprocess_output, [y_train, y_test])
+print('Loading MNIST data...')
+print('x_train shape:', x_train.shape, 'y_train shape:', y_train.shape)
+print('x_test shape:', x_test.shape, 'y_test shape', y_test.shape)
+
+
+# knowledge transfer algorithms
+def wider2net_conv2d(teacher_w1, teacher_b1, teacher_w2, new_width, init):
+    '''Get initial weights for a wider conv2d layer with a bigger filters,
+    by 'random-padding' or 'net2wider'.
+
+    # Arguments
+        teacher_w1: `weight` of conv2d layer to become wider,
+          of shape (filters1, num_channel1, kh1, kw1)
+        teacher_b1: `bias` of conv2d layer to become wider,
+          of shape (filters1, )
+        teacher_w2: `weight` of next connected conv2d layer,
+          of shape (filters2, num_channel2, kh2, kw2)
+        new_width: new `filters` for the wider conv2d layer
+        init: initialization algorithm for new weights,
+          either 'random-pad' or 'net2wider'
+    '''
+    assert teacher_w1.shape[0] == teacher_w2.shape[1], (
+        'successive layers from teacher model should have compatible shapes')
+    assert teacher_w1.shape[3] == teacher_b1.shape[0], (
+        'weight and bias from same layer should have compatible shapes')
+    assert new_width > teacher_w1.shape[3], (
+        'new width (filters) should be bigger than the existing one')
+
+    n = new_width - teacher_w1.shape[3]
+    if init == 'random-pad':
+        new_w1 = np.random.normal(0, 0.1, size=teacher_w1.shape[:3] + (n,))
+        new_b1 = np.ones(n) * 0.1
+        new_w2 = np.random.normal(
+            0, 0.1,
+            size=teacher_w2.shape[:2] + (n, teacher_w2.shape[3]))
+    elif init == 'net2wider':
+        index = np.random.randint(teacher_w1.shape[3], size=n)
+        factors = np.bincount(index)[index] + 1.
+        new_w1 = teacher_w1[:, :, :, index]
+        new_b1 = teacher_b1[index]
+        new_w2 = teacher_w2[:, :, index, :] / factors.reshape((1, 1, -1, 1))
+    else:
+        raise ValueError('Unsupported weight initializer: %s' % init)
+
+    student_w1 = np.concatenate((teacher_w1, new_w1), axis=3)
+    if init == 'random-pad':
+        student_w2 = np.concatenate((teacher_w2, new_w2), axis=2)
+    elif init == 'net2wider':
+        # add small noise to break symmetry, so that student model will have
+        # full capacity later
+        noise = np.random.normal(0, 5e-2 * new_w2.std(), size=new_w2.shape)
+        student_w2 = np.concatenate((teacher_w2, new_w2 + noise), axis=2)
+        student_w2[:, :, index, :] = new_w2
+    student_b1 = np.concatenate((teacher_b1, new_b1), axis=0)
+
+    return student_w1, student_b1, student_w2
+
+
+def wider2net_fc(teacher_w1, teacher_b1, teacher_w2, new_width, init):
+    '''Get initial weights for a wider fully connected (dense) layer
+       with a bigger nout, by 'random-padding' or 'net2wider'.
+
+    # Arguments
+        teacher_w1: `weight` of fc layer to become wider,
+          of shape (nin1, nout1)
+        teacher_b1: `bias` of fc layer to become wider,
+          of shape (nout1, )
+        teacher_w2: `weight` of next connected fc layer,
+          of shape (nin2, nout2)
+        new_width: new `nout` for the wider fc layer
+        init: initialization algorithm for new weights,
+          either 'random-pad' or 'net2wider'
+    '''
+    assert teacher_w1.shape[1] == teacher_w2.shape[0], (
+        'successive layers from teacher model should have compatible shapes')
+    assert teacher_w1.shape[1] == teacher_b1.shape[0], (
+        'weight and bias from same layer should have compatible shapes')
+    assert new_width > teacher_w1.shape[1], (
+        'new width (nout) should be bigger than the existing one')
+
+    n = new_width - teacher_w1.shape[1]
+    if init == 'random-pad':
+        new_w1 = np.random.normal(0, 0.1, size=(teacher_w1.shape[0], n))
+        new_b1 = np.ones(n) * 0.1
+        new_w2 = np.random.normal(0, 0.1, size=(n, teacher_w2.shape[1]))
+    elif init == 'net2wider':
+        index = np.random.randint(teacher_w1.shape[1], size=n)
+        factors = np.bincount(index)[index] + 1.
+        new_w1 = teacher_w1[:, index]
+        new_b1 = teacher_b1[index]
+        new_w2 = teacher_w2[index, :] / factors[:, np.newaxis]
+    else:
+        raise ValueError('Unsupported weight initializer: %s' % init)
+
+    student_w1 = np.concatenate((teacher_w1, new_w1), axis=1)
+    if init == 'random-pad':
+        student_w2 = np.concatenate((teacher_w2, new_w2), axis=0)
+    elif init == 'net2wider':
+        # add small noise to break symmetry, so that student model will have
+        # full capacity later
+        noise = np.random.normal(0, 5e-2 * new_w2.std(), size=new_w2.shape)
+        student_w2 = np.concatenate((teacher_w2, new_w2 + noise), axis=0)
+        student_w2[index, :] = new_w2
+    student_b1 = np.concatenate((teacher_b1, new_b1), axis=0)
+
+    return student_w1, student_b1, student_w2
+
+
+def deeper2net_conv2d(teacher_w):
+    '''Get initial weights for a deeper conv2d layer by net2deeper'.
+
+    # Arguments
+        teacher_w: `weight` of previous conv2d layer,
+          of shape (kh, kw, num_channel, filters)
+    '''
+    kh, kw, num_channel, filters = teacher_w.shape
+    student_w = np.zeros_like(teacher_w)
+    for i in range(filters):
+        student_w[(kh - 1) // 2, (kw - 1) // 2, i, i] = 1.
+    student_b = np.zeros(filters)
+    return student_w, student_b
+
+
+def copy_weights(teacher_model, student_model, layer_names):
+    '''Copy weights from teacher_model to student_model,
+     for layers with names listed in layer_names
+    '''
+    for name in layer_names:
+        weights = teacher_model.get_layer(name=name).get_weights()
+        student_model.get_layer(name=name).set_weights(weights)
+
+
+# methods to construct teacher_model and student_models
+def make_teacher_model(x_train, y_train,
+                       x_test, y_test,
+                       epochs):
+    '''Train and benchmark performance of a simple CNN.
+    (0) Teacher model
+    '''
+    model = Sequential()
+    model.add(Conv2D(64, 3, input_shape=input_shape,
+                     padding='same', name='conv1'))
+    model.add(MaxPooling2D(2, name='pool1'))
+    model.add(Conv2D(64, 3, padding='same', name='conv2'))
+    model.add(MaxPooling2D(2, name='pool2'))
+    model.add(Flatten(name='flatten'))
+    model.add(Dense(64, activation='relu', name='fc1'))
+    model.add(Dense(num_classes, activation='softmax', name='fc2'))
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=SGD(lr=0.01, momentum=0.9),
+                  metrics=['accuracy'])
+
+    model.fit(x_train, y_train,
+              epochs=epochs,
+              validation_data=(x_test, y_test))
+    return model
+
+
+def make_wider_student_model(teacher_model,
+                             x_train, y_train,
+                             x_test, y_test,
+                             init, epochs):
+    '''Train a wider student model based on teacher_model,
+       with either 'random-pad' (baseline) or 'net2wider'
+    '''
+    new_conv1_width = 128
+    new_fc1_width = 128
+
+    model = Sequential()
+    # a wider conv1 compared to teacher_model
+    model.add(Conv2D(new_conv1_width, 3, input_shape=input_shape,
+                     padding='same', name='conv1'))
+    model.add(MaxPooling2D(2, name='pool1'))
+    model.add(Conv2D(64, 3, padding='same', name='conv2'))
+    model.add(MaxPooling2D(2, name='pool2'))
+    model.add(Flatten(name='flatten'))
+    # a wider fc1 compared to teacher model
+    model.add(Dense(new_fc1_width, activation='relu', name='fc1'))
+    model.add(Dense(num_classes, activation='softmax', name='fc2'))
+
+    # The weights for other layers need to be copied from teacher_model
+    # to student_model, except for widened layers
+    # and their immediate downstreams, which will be initialized separately.
+    # For this example there are no other layers that need to be copied.
+
+    w_conv1, b_conv1 = teacher_model.get_layer('conv1').get_weights()
+    w_conv2, b_conv2 = teacher_model.get_layer('conv2').get_weights()
+    new_w_conv1, new_b_conv1, new_w_conv2 = wider2net_conv2d(
+        w_conv1, b_conv1, w_conv2, new_conv1_width, init)
+    model.get_layer('conv1').set_weights([new_w_conv1, new_b_conv1])
+    model.get_layer('conv2').set_weights([new_w_conv2, b_conv2])
+
+    w_fc1, b_fc1 = teacher_model.get_layer('fc1').get_weights()
+    w_fc2, b_fc2 = teacher_model.get_layer('fc2').get_weights()
+    new_w_fc1, new_b_fc1, new_w_fc2 = wider2net_fc(
+        w_fc1, b_fc1, w_fc2, new_fc1_width, init)
+    model.get_layer('fc1').set_weights([new_w_fc1, new_b_fc1])
+    model.get_layer('fc2').set_weights([new_w_fc2, b_fc2])
+
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=SGD(lr=0.001, momentum=0.9),
+                  metrics=['accuracy'])
+
+    model.fit(x_train, y_train,
+              epochs=epochs,
+              validation_data=(x_test, y_test))
+
+
+def make_deeper_student_model(teacher_model,
+                              x_train, y_train,
+                              x_test, y_test,
+                              init, epochs):
+    '''Train a deeper student model based on teacher_model,
+       with either 'random-init' (baseline) or 'net2deeper'
+    '''
+    model = Sequential()
+    model.add(Conv2D(64, 3, input_shape=input_shape,
+                     padding='same', name='conv1'))
+    model.add(MaxPooling2D(2, name='pool1'))
+    model.add(Conv2D(64, 3, padding='same', name='conv2'))
+    # add another conv2d layer to make original conv2 deeper
+    if init == 'net2deeper':
+        prev_w, _ = model.get_layer('conv2').get_weights()
+        new_weights = deeper2net_conv2d(prev_w)
+        model.add(Conv2D(64, 3, padding='same',
+                         name='conv2-deeper', weights=new_weights))
+    elif init == 'random-init':
+        model.add(Conv2D(64, 3, padding='same', name='conv2-deeper'))
+    else:
+        raise ValueError('Unsupported weight initializer: %s' % init)
+    model.add(MaxPooling2D(2, name='pool2'))
+    model.add(Flatten(name='flatten'))
+    model.add(Dense(64, activation='relu', name='fc1'))
+    # add another fc layer to make original fc1 deeper
+    if init == 'net2deeper':
+        # net2deeper for fc layer with relu, is just an identity initializer
+        model.add(Dense(64, kernel_initializer='identity',
+                        activation='relu', name='fc1-deeper'))
+    elif init == 'random-init':
+        model.add(Dense(64, activation='relu', name='fc1-deeper'))
+    else:
+        raise ValueError('Unsupported weight initializer: %s' % init)
+    model.add(Dense(num_classes, activation='softmax', name='fc2'))
+
+    # copy weights for other layers
+    copy_weights(teacher_model, model, layer_names=[
+                 'conv1', 'conv2', 'fc1', 'fc2'])
+
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=SGD(lr=0.001, momentum=0.9),
+                  metrics=['accuracy'])
+
+    model.fit(x_train, y_train,
+              epochs=epochs,
+              validation_data=(x_test, y_test))
+
+
+# experiments setup
+def net2wider_experiment():
+    '''Benchmark performances of
+    (1) a wider student model with `random_pad` initializer
+    (2) a wider student model with `Net2WiderNet` initializer
+    '''
+    print('\nExperiment of Net2WiderNet ...')
+
+    print('\n(1) building wider student model by random padding ...')
+    make_wider_student_model(teacher_model,
+                             x_train, y_train,
+                             x_test, y_test,
+                             init='random-pad',
+                             epochs=epochs)
+    print('\n(2) building wider student model by net2wider ...')
+    make_wider_student_model(teacher_model,
+                             x_train, y_train,
+                             x_test, y_test,
+                             init='net2wider',
+                             epochs=epochs)
+
+
+def net2deeper_experiment():
+    '''Benchmark performances of
+    (3) a deeper student model with `random_init` initializer
+    (4) a deeper student model with `Net2DeeperNet` initializer
+    '''
+    print('\nExperiment of Net2DeeperNet ...')
+
+    print('\n(3) building deeper student model by random init ...')
+    make_deeper_student_model(teacher_model,
+                              x_train, y_train,
+                              x_test, y_test,
+                              init='random-init',
+                              epochs=epochs)
+    print('\n(4) building deeper student model by net2deeper ...')
+    make_deeper_student_model(teacher_model,
+                              x_train, y_train,
+                              x_test, y_test,
+                              init='net2deeper',
+                              epochs=epochs)
+
+
+print('\n(0) building teacher model ...')
+teacher_model = make_teacher_model(x_train, y_train,
+                                   x_test, y_test,
+                                   epochs=epochs)
+
+# run the experiments
+net2wider_experiment()
+net2deeper_experiment()
+'''Trains a Siamese MLP on pairs of digits from the MNIST dataset.
+
+It follows Hadsell-et-al.'06 [1] by computing the Euclidean distance on the
+output of the shared network and by optimizing the contrastive loss (see paper
+for more details).
+
+# References
+
+- Dimensionality Reduction by Learning an Invariant Mapping
+    http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
+
+Gets to 97.2% test accuracy after 20 epochs.
+2 seconds per epoch on a Titan X Maxwell GPU
+'''
+from __future__ import absolute_import
+from __future__ import print_function
+import numpy as np
+
+import random
+from keras.datasets import mnist
+from keras.models import Model
+from keras.layers import Input, Flatten, Dense, Dropout, Lambda
+from keras.optimizers import RMSprop
+from keras import backend as K
+
+num_classes = 10
+epochs = 20
+
+
+def euclidean_distance(vects):
+    x, y = vects
+    sum_square = K.sum(K.square(x - y), axis=1, keepdims=True)
+    return K.sqrt(K.maximum(sum_square, K.epsilon()))
+
+
+def eucl_dist_output_shape(shapes):
+    shape1, shape2 = shapes
+    return (shape1[0], 1)
+
+
+def contrastive_loss(y_true, y_pred):
+    '''Contrastive loss from Hadsell-et-al.'06
+    http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
+    '''
+    margin = 1
+    square_pred = K.square(y_pred)
+    margin_square = K.square(K.maximum(margin - y_pred, 0))
+    return K.mean(y_true * square_pred + (1 - y_true) * margin_square)
+
+
+def create_pairs(x, digit_indices):
+    '''Positive and negative pair creation.
+    Alternates between positive and negative pairs.
+    '''
+    pairs = []
+    labels = []
+    n = min([len(digit_indices[d]) for d in range(num_classes)]) - 1
+    for d in range(num_classes):
+        for i in range(n):
+            z1, z2 = digit_indices[d][i], digit_indices[d][i + 1]
+            pairs += [[x[z1], x[z2]]]
+            inc = random.randrange(1, num_classes)
+            dn = (d + inc) % num_classes
+            z1, z2 = digit_indices[d][i], digit_indices[dn][i]
+            pairs += [[x[z1], x[z2]]]
+            labels += [1, 0]
+    return np.array(pairs), np.array(labels)
+
+
+def create_base_network(input_shape):
+    '''Base network to be shared (eq. to feature extraction).
+    '''
+    input = Input(shape=input_shape)
+    x = Flatten()(input)
+    x = Dense(128, activation='relu')(x)
+    x = Dropout(0.1)(x)
+    x = Dense(128, activation='relu')(x)
+    x = Dropout(0.1)(x)
+    x = Dense(128, activation='relu')(x)
+    return Model(input, x)
+
+
+def compute_accuracy(y_true, y_pred):
+    '''Compute classification accuracy with a fixed threshold on distances.
+    '''
+    pred = y_pred.ravel() < 0.5
+    return np.mean(pred == y_true)
+
+
+def accuracy(y_true, y_pred):
+    '''Compute classification accuracy with a fixed threshold on distances.
+    '''
+    return K.mean(K.equal(y_true, K.cast(y_pred < 0.5, y_true.dtype)))
+
+
+# the data, split between train and test sets
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+x_train /= 255
+x_test /= 255
+input_shape = x_train.shape[1:]
+
+# create training+test positive and negative pairs
+digit_indices = [np.where(y_train == i)[0] for i in range(num_classes)]
+tr_pairs, tr_y = create_pairs(x_train, digit_indices)
+
+digit_indices = [np.where(y_test == i)[0] for i in range(num_classes)]
+te_pairs, te_y = create_pairs(x_test, digit_indices)
+
+# network definition
+base_network = create_base_network(input_shape)
+
+input_a = Input(shape=input_shape)
+input_b = Input(shape=input_shape)
+
+# because we re-use the same instance `base_network`,
+# the weights of the network
+# will be shared across the two branches
+processed_a = base_network(input_a)
+processed_b = base_network(input_b)
+
+distance = Lambda(euclidean_distance,
+                  output_shape=eucl_dist_output_shape)([processed_a, processed_b])
+
+model = Model([input_a, input_b], distance)
+
+# train
+rms = RMSprop()
+model.compile(loss=contrastive_loss, optimizer=rms, metrics=[accuracy])
+model.fit([tr_pairs[:, 0], tr_pairs[:, 1]], tr_y,
+          batch_size=128,
+          epochs=epochs,
+          validation_data=([te_pairs[:, 0], te_pairs[:, 1]], te_y))
+
+# compute final accuracy on training and test sets
+y_pred = model.predict([tr_pairs[:, 0], tr_pairs[:, 1]])
+tr_acc = compute_accuracy(tr_y, y_pred)
+y_pred = model.predict([te_pairs[:, 0], te_pairs[:, 1]])
+te_acc = compute_accuracy(te_y, y_pred)
+
+print('* Accuracy on training set: %0.2f%%' % (100 * tr_acc))
+print('* Accuracy on test set: %0.2f%%' % (100 * te_acc))
+'''Example of how to use sklearn wrapper
+
+Builds simple CNN models on MNIST and uses sklearn's GridSearchCV to find best model
+'''
+
+from __future__ import print_function
+
+import keras
+from keras.datasets import mnist
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.layers import Conv2D, MaxPooling2D
+from keras.wrappers.scikit_learn import KerasClassifier
+from keras import backend as K
+from sklearn.model_selection import GridSearchCV
+
+
+num_classes = 10
+
+# input image dimensions
+img_rows, img_cols = 28, 28
+
+# load training data and do basic data normalization
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+if K.image_data_format() == 'channels_first':
+    x_train = x_train.reshape(x_train.shape[0], 1, img_rows, img_cols)
+    x_test = x_test.reshape(x_test.shape[0], 1, img_rows, img_cols)
+    input_shape = (1, img_rows, img_cols)
+else:
+    x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 1)
+    x_test = x_test.reshape(x_test.shape[0], img_rows, img_cols, 1)
+    input_shape = (img_rows, img_cols, 1)
+
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+x_train /= 255
+x_test /= 255
+
+# convert class vectors to binary class matrices
+y_train = keras.utils.to_categorical(y_train, num_classes)
+y_test = keras.utils.to_categorical(y_test, num_classes)
+
+
+def make_model(dense_layer_sizes, filters, kernel_size, pool_size):
+    '''Creates model comprised of 2 convolutional layers followed by dense layers
+
+    dense_layer_sizes: List of layer sizes.
+        This list has one number for each layer
+    filters: Number of convolutional filters in each convolutional layer
+    kernel_size: Convolutional kernel size
+    pool_size: Size of pooling area for max pooling
+    '''
+
+    model = Sequential()
+    model.add(Conv2D(filters, kernel_size,
+                     padding='valid',
+                     input_shape=input_shape))
+    model.add(Activation('relu'))
+    model.add(Conv2D(filters, kernel_size))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=pool_size))
+    model.add(Dropout(0.25))
+
+    model.add(Flatten())
+    for layer_size in dense_layer_sizes:
+        model.add(Dense(layer_size))
+        model.add(Activation('relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(num_classes))
+    model.add(Activation('softmax'))
+
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='adadelta',
+                  metrics=['accuracy'])
+
+    return model
+
+
+dense_size_candidates = [[32], [64], [32, 32], [64, 64]]
+my_classifier = KerasClassifier(make_model, batch_size=32)
+validator = GridSearchCV(my_classifier,
+                         param_grid={'dense_layer_sizes': dense_size_candidates,
+                                     # epochs is avail for tuning even when not
+                                     # an argument to model building function
+                                     'epochs': [3, 6],
+                                     'filters': [8],
+                                     'kernel_size': [3],
+                                     'pool_size': [2]},
+                         scoring='neg_log_loss',
+                         n_jobs=1)
+validator.fit(x_train, y_train)
+
+print('The parameters of the best model are: ')
+print(validator.best_params_)
+
+# validator.best_estimator_ returns sklearn-wrapped version of best model.
+# validator.best_estimator_.model returns the (unwrapped) keras model
+best_model = validator.best_estimator_.model
+metric_names = best_model.metrics_names
+metric_values = best_model.evaluate(x_test, y_test)
+for metric, value in zip(metric_names, metric_values):
+    print(metric, ': ', value)
+'''Trains a stacked what-where autoencoder built on residual blocks on the
+MNIST dataset. It exemplifies two influential methods that have been developed
+in the past few years.
+
+The first is the idea of properly 'unpooling.' During any max pool, the
+exact location (the 'where') of the maximal value in a pooled receptive field
+is lost, however it can be very useful in the overall reconstruction of an
+input image. Therefore, if the 'where' is handed from the encoder
+to the corresponding decoder layer, features being decoded can be 'placed' in
+the right location, allowing for reconstructions of much higher fidelity.
+
+# References
+
+- Visualizing and Understanding Convolutional Networks
+  Matthew D Zeiler, Rob Fergus
+  https://arxiv.org/abs/1311.2901v3
+- Stacked What-Where Auto-encoders
+  Junbo Zhao, Michael Mathieu, Ross Goroshin, Yann LeCun
+  https://arxiv.org/abs/1506.02351v8
+
+The second idea exploited here is that of residual learning. Residual blocks
+ease the training process by allowing skip connections that give the network
+the ability to be as linear (or non-linear) as the data sees fit.  This allows
+for much deep networks to be easily trained. The residual element seems to
+be advantageous in the context of this example as it allows a nice symmetry
+between the encoder and decoder. Normally, in the decoder, the final
+projection to the space where the image is reconstructed is linear, however
+this does not have to be the case for a residual block as the degree to which
+its output is linear or non-linear is determined by the data it is fed.
+However, in order to cap the reconstruction in this example, a hard softmax is
+applied as a bias because we know the MNIST digits are mapped to [0, 1].
+
+# References
+- Deep Residual Learning for Image Recognition
+  Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
+  https://arxiv.org/abs/1512.03385v1
+- Identity Mappings in Deep Residual Networks
+  Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
+  https://arxiv.org/abs/1603.05027v3
+'''
+from __future__ import print_function
+import numpy as np
+
+from keras.datasets import mnist
+from keras.models import Model
+from keras.layers import Activation
+from keras.layers import UpSampling2D, Conv2D, MaxPooling2D
+from keras.layers import Input, BatchNormalization, ELU
+import matplotlib.pyplot as plt
+import keras.backend as K
+from keras import layers
+
+
+def convresblock(x, nfeats=8, ksize=3, nskipped=2, elu=True):
+    """The proposed residual block from [4].
+
+    Running with elu=True will use ELU nonlinearity and running with
+    elu=False will use BatchNorm + RELU nonlinearity.  While ELU's are fast
+    due to the fact they do not suffer from BatchNorm overhead, they may
+    overfit because they do not offer the stochastic element of the batch
+    formation process of BatchNorm, which acts as a good regularizer.
+
+    # Arguments
+        x: 4D tensor, the tensor to feed through the block
+        nfeats: Integer, number of feature maps for conv layers.
+        ksize: Integer, width and height of conv kernels in first convolution.
+        nskipped: Integer, number of conv layers for the residual function.
+        elu: Boolean, whether to use ELU or BN+RELU.
+
+    # Input shape
+        4D tensor with shape:
+        `(batch, channels, rows, cols)`
+
+    # Output shape
+        4D tensor with shape:
+        `(batch, filters, rows, cols)`
+    """
+    y0 = Conv2D(nfeats, ksize, padding='same')(x)
+    y = y0
+    for i in range(nskipped):
+        if elu:
+            y = ELU()(y)
+        else:
+            y = BatchNormalization(axis=1)(y)
+            y = Activation('relu')(y)
+        y = Conv2D(nfeats, 1, padding='same')(y)
+    return layers.add([y0, y])
+
+
+def getwhere(x):
+    ''' Calculate the 'where' mask that contains switches indicating which
+    index contained the max value when MaxPool2D was applied.  Using the
+    gradient of the sum is a nice trick to keep everything high level.'''
+    y_prepool, y_postpool = x
+    return K.gradients(K.sum(y_postpool), y_prepool)
+
+
+if K.backend() == 'tensorflow':
+    raise RuntimeError('This example can only run with the '
+                       'Theano backend for the time being, '
+                       'because it requires taking the gradient '
+                       'of a gradient, which isn\'t '
+                       'supported for all TensorFlow ops.')
+
+# This example assume 'channels_first' data format.
+K.set_image_data_format('channels_first')
+
+# input image dimensions
+img_rows, img_cols = 28, 28
+
+# the data, split between train and test sets
+(x_train, _), (x_test, _) = mnist.load_data()
+
+x_train = x_train.reshape(x_train.shape[0], 1, img_rows, img_cols)
+x_test = x_test.reshape(x_test.shape[0], 1, img_rows, img_cols)
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+x_train /= 255
+x_test /= 255
+print('x_train shape:', x_train.shape)
+print(x_train.shape[0], 'train samples')
+print(x_test.shape[0], 'test samples')
+
+# The size of the kernel used for the MaxPooling2D
+pool_size = 2
+# The total number of feature maps at each layer
+nfeats = [8, 16, 32, 64, 128]
+# The sizes of the pooling kernel at each layer
+pool_sizes = np.array([1, 1, 1, 1, 1]) * pool_size
+# The convolution kernel size
+ksize = 3
+# Number of epochs to train for
+epochs = 5
+# Batch size during training
+batch_size = 128
+
+if pool_size == 2:
+    # if using a 5 layer net of pool_size = 2
+    x_train = np.pad(x_train, [[0, 0], [0, 0], [2, 2], [2, 2]],
+                     mode='constant')
+    x_test = np.pad(x_test, [[0, 0], [0, 0], [2, 2], [2, 2]], mode='constant')
+    nlayers = 5
+elif pool_size == 3:
+    # if using a 3 layer net of pool_size = 3
+    x_train = x_train[:, :, :-1, :-1]
+    x_test = x_test[:, :, :-1, :-1]
+    nlayers = 3
+else:
+    import sys
+    sys.exit('Script supports pool_size of 2 and 3.')
+
+# Shape of input to train on (note that model is fully convolutional however)
+input_shape = x_train.shape[1:]
+# The final list of the size of axis=1 for all layers, including input
+nfeats_all = [input_shape[0]] + nfeats
+
+# First build the encoder, all the while keeping track of the 'where' masks
+img_input = Input(shape=input_shape)
+
+# We push the 'where' masks to the following list
+wheres = [None] * nlayers
+y = img_input
+for i in range(nlayers):
+    y_prepool = convresblock(y, nfeats=nfeats_all[i + 1], ksize=ksize)
+    y = MaxPooling2D(pool_size=(pool_sizes[i], pool_sizes[i]))(y_prepool)
+    wheres[i] = layers.Lambda(
+        getwhere, output_shape=lambda x: x[0])([y_prepool, y])
+
+# Now build the decoder, and use the stored 'where' masks to place the features
+for i in range(nlayers):
+    ind = nlayers - 1 - i
+    y = UpSampling2D(size=(pool_sizes[ind], pool_sizes[ind]))(y)
+    y = layers.multiply([y, wheres[ind]])
+    y = convresblock(y, nfeats=nfeats_all[ind], ksize=ksize)
+
+# Use hard_simgoid to clip range of reconstruction
+y = Activation('hard_sigmoid')(y)
+
+# Define the model and it's mean square error loss, and compile it with Adam
+model = Model(img_input, y)
+model.compile('adam', 'mse')
+
+# Fit the model
+model.fit(x_train, x_train,
+          batch_size=batch_size,
+          epochs=epochs,
+          validation_data=(x_test, x_test))
