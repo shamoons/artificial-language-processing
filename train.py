@@ -15,7 +15,6 @@ parser.add_argument('--name', dest='name', default='small_model',
 
 args = parser.parse_args()
 
-
 textgen = textgenrnn()
 textgen.train_from_file(args.filename, num_epochs=5, word_level=True, rnn_bidirectional=True,
                         rnn_layers=5, rnn_size=256, name=args.name,
