@@ -15,7 +15,7 @@ class Octoscrape:
 
     def search_repos(self):
         return self.g.search_repositories(
-            query='keras stars:>=500 fork:true language:python').get_page(self.page)
+            query='keras stars:>=1000 fork:true language:python').get_page(self.page)
 
     def get_contents(self, repo, file_extension):
         try:
