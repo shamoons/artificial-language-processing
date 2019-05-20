@@ -1,3 +1,4 @@
+<s>
 from setuptools import setup
 from setuptools import find_packages
 
@@ -81,8 +82,6 @@ sign = pyux.sign(keras)
 with open('api.json', 'w') as f:
     json.dump(sign, f)
 <eos>
-<eos>
-# -*- coding: utf-8 -*-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -150,8 +149,6 @@ def get_class_signature(cls):
         class_signature = get_function_signature(cls.__init__)
         class_signature = class_signature.replace('__init__', cls.__name__)
     except (TypeError, AttributeError):
-        # in case the class inherits from object and does not
-        # define __init__
         class_signature = "{clean_module_name}.{cls_name}()".format(
             clean_module_name=cls.__module__,
             cls_name=cls.__name__
@@ -210,31 +207,24 @@ def process_list_block(docstring, starting_point, section_end,
     block = docstring[starting_point:
                       (ending_point - 1 if ending_point > -1
                        else section_end)]
-    # Place marker for later reinjection.
     docstring_slice = docstring[
         starting_point:section_end].replace(block, marker)
     docstring = (docstring[:starting_point]
                  + docstring_slice
                  + docstring[section_end:])
     lines = block.split('\n')
-    # Remove the computed number of leading white spaces from each line.
     lines = [re.sub('^' + ' ' * leading_spaces, '', line) for line in lines]
-    # Usually lines have at least 4 additional leading spaces.
-    # These have to be removed, but first the list roots have to be detected.
     top_level_regex = r'^    ([^\s\\\(]+):(.*)'
     top_level_replacement = r'- __\1__:\2'
     lines = [re.sub(top_level_regex, top_level_replacement, line)
              for line in lines]
-    # All the other lines get simply the 4 leading space (if present) removed
     lines = [re.sub(r'^    ', '', line) for line in lines]
-    # Fix text lines after lists
     indent = 0
     text_block = False
     for i in range(len(lines)):
         line = lines[i]
         spaces = re.search(r'\S', line)
         if spaces:
-            # If it is a list element
             if line[spaces.start()] == '-':
                 indent = spaces.start() + 1
                 if text_block:
@@ -252,7 +242,6 @@ def process_list_block(docstring, starting_point, section_end,
 
 
 def process_docstring(docstring):
-    # First, extract code blocks and process them.
     code_blocks = []
     if '```' in docstring:
         tmp = docstring[:]
@@ -260,17 +249,13 @@ def process_docstring(docstring):
             tmp = tmp[tmp.find('```'):]
             index = tmp[3:].find('```') + 6
             snippet = tmp[:index]
-            # Place marker in docstring for later reinjection.
             docstring = docstring.replace(
                 snippet, '$CODE_BLOCK_%d' % len(code_blocks))
             snippet_lines = snippet.split('\n')
-            # Remove leading spaces.
             num_leading_spaces = snippet_lines[-1].find('`')
             snippet_lines = ([snippet_lines[0]]
                              + [line[num_leading_spaces:]
                               for line in snippet_lines[1:]])
-            # Most code snippets have 3 or 4 more leading spaces
-            # on inner lines, but not all. Remove them.
             inner_lines = snippet_lines[1:-1]
             leading_spaces = None
             for line in inner_lines:
@@ -290,7 +275,6 @@ def process_docstring(docstring):
             code_blocks.append(snippet)
             tmp = tmp[index:]
 
-    # Format docstring lists.
     section_regex = r'\n( +)# (.*)\n'
     section_idx = re.search(section_regex, docstring)
     shift = 0
@@ -311,24 +295,18 @@ def process_docstring(docstring):
                                                 leading_spaces,
                                                 marker)
         sections[marker] = content
-        # `docstring` has changed, so we can't use `next_section_idx` anymore
-        # we have to recompute it
         section_idx = re.search(section_regex, docstring[shift:])
 
-    # Format docstring section titles.
     docstring = re.sub(r'\n(\s+)# (.*)\n',
                        r'\n\1__\2__\n\n',
                        docstring)
 
-    # Strip all remaining leading spaces.
     lines = docstring.split('\n')
     docstring = '\n'.join([line.lstrip(' ') for line in lines])
 
-    # Reinject list blocks.
     for marker, content in sections.items():
         docstring = docstring.replace(marker, content)
 
-    # Reinject code blocks.
     for i, code_block in enumerate(code_blocks):
         docstring = docstring.replace(
             '$CODE_BLOCK_%d' % i, code_block)
@@ -341,7 +319,6 @@ def add_np_implementation(function, docstring):
     code_lines = code.split('\n')
     for i in range(len(code_lines)):
         if code_lines[i]:
-            # if there is something on the line, add 8 spaces.
             code_lines[i] = '        ' + code_lines[i]
     code = '\n'.join(code_lines[:-1])
 
@@ -436,17 +413,14 @@ def copy_examples(examples_dir, destination_dir):
 
             f_out.write(docstring + '\n\n')
 
-            # skip docstring
             for _ in range(starting_line):
                 next(f_in)
 
             f_out.write('```python\n')
-            # next line might be empty.
             line = next(f_in)
             if line != '\n':
                 f_out.write(line)
 
-            # copy the rest of the file.
             for line in f_in:
                 f_out.write(line)
             f_out.write('```')
@@ -455,7 +429,6 @@ def copy_examples(examples_dir, destination_dir):
 def generate(sources_dir):
     """Generates the markdown files for the documentation.
 
-    # Arguments
         sources_dir: Where to put the markdown files.
     """
     template_dir = os.path.join(str(keras_dir), 'docs', 'templates')
@@ -523,9 +496,6 @@ def generate(sources_dir):
                                + page_data['page'])
 
         mkdown = '\n----\n\n'.join(blocks)
-        # Save module page.
-        # Either insert content into existing page,
-        # or create page otherwise.
         page_name = page_data['page']
         path = os.path.join(sources_dir, page_name)
         if os.path.exists(path):
@@ -553,7 +523,6 @@ def generate(sources_dir):
 if __name__ == '__main__':
     generate(os.path.join(str(keras_dir), 'docs', 'sources'))
 <eos>
-# -*- coding: utf-8 -*-
 '''
 General documentation architecture:
 
@@ -648,13 +617,6 @@ EXCLUDE = {
     'Constraint'
 }
 
-# For each class to document, it is possible to:
-# 1) Document only the class: [classA, classB, ...]
-# 2) Document all its methods: [classA, (classB, "*")]
-# 3) Choose which methods to document (methods listed as strings):
-# [classA, (classB, ["method1", "method2", ...]), ...]
-# 4) Choose which methods to document (methods listed as qualified names):
-# [classA, (classB, [module.classB.method1, module.classB.method2, ...]), ...]
 PAGES = [
     {
         'page': 'models/sequential.md',
@@ -912,9 +874,7 @@ template_hidden_np_implementation = """# Numpy implementation
     </details>
 """
 <eos>
-# -*- coding: utf-8 -*-
 '''
-# An implementation of sequence to sequence learning for performing addition
 
 Input: "535+61"
 Output: "596"
@@ -958,7 +918,6 @@ class CharacterTable(object):
     def __init__(self, chars):
         """Initialize character table.
 
-        # Arguments
             chars: Characters that can appear in the input.
         """
         self.chars = sorted(set(chars))
@@ -968,7 +927,6 @@ class CharacterTable(object):
     def encode(self, C, num_rows):
         """One-hot encode given string C.
 
-        # Arguments
             C: string, to be encoded.
             num_rows: Number of rows in the returned one-hot encoding. This is
                 used to keep the # of rows for each data the same.
@@ -981,7 +939,6 @@ class CharacterTable(object):
     def decode(self, x, calc_argmax=True):
         """Decode the given vector or 2D array to their character output.
 
-        # Arguments
             x: A vector or a 2D array of probabilities or one-hot representations;
                 or a vector of character indices (used with `calc_argmax=False`).
             calc_argmax: Whether to find the character index with maximum
@@ -998,16 +955,12 @@ class colors:
     close = '\033[0m'
 
 
-# Parameters for the model and dataset.
 TRAINING_SIZE = 50000
 DIGITS = 3
 REVERSE = True
 
-# Maximum length of input is 'int + int' (e.g., '345+678'). Maximum length of
-# int is DIGITS.
 MAXLEN = DIGITS + 1 + DIGITS
 
-# All the numbers, plus sign and space for padding.
 chars = '0123456789+ '
 ctable = CharacterTable(chars)
 
@@ -1019,21 +972,15 @@ while len(questions) < TRAINING_SIZE:
     def f(): return int(''.join(np.random.choice(list('0123456789'))
                                 for i in range(np.random.randint(1, DIGITS + 1))))
     a, b = f(), f()
-    # Skip any addition questions we've already seen
-    # Also skip any such that x+Y == Y+x (hence the sorting).
     key = tuple(sorted((a, b)))
     if key in seen:
         continue
     seen.add(key)
-    # Pad the data with spaces such that it is always MAXLEN.
     q = '{}+{}'.format(a, b)
     query = q + ' ' * (MAXLEN - len(q))
     ans = str(a + b)
-    # Answers can be of maximum size DIGITS + 1.
     ans += ' ' * (DIGITS + 1 - len(ans))
     if REVERSE:
-        # Reverse the query, e.g., '12+345  ' becomes '  543+21'. (Note the
-        # space used for padding.)
         query = query[::-1]
     questions.append(query)
     expected.append(ans)
@@ -1047,14 +994,11 @@ for i, sentence in enumerate(questions):
 for i, sentence in enumerate(expected):
     y[i] = ctable.encode(sentence, DIGITS + 1)
 
-# Shuffle (x, y) in unison as the later parts of x will almost all be larger
-# digits.
 indices = np.arange(len(y))
 np.random.shuffle(indices)
 x = x[indices]
 y = y[indices]
 
-# Explicitly set apart 10% for validation data that we never train over.
 split_at = len(x) - len(x) // 10
 (x_train, x_val) = x[:split_at], x[split_at:]
 (y_train, y_val) = y[:split_at], y[split_at:]
@@ -1067,7 +1011,6 @@ print('Validation Data:')
 print(x_val.shape)
 print(y_val.shape)
 
-# Try replacing GRU, or SimpleRNN.
 RNN = layers.LSTM
 HIDDEN_SIZE = 128
 BATCH_SIZE = 128
@@ -1075,32 +1018,17 @@ LAYERS = 1
 
 print('Build model...')
 model = Sequential()
-# "Encode" the input sequence using an RNN, producing an output of HIDDEN_SIZE.
-# Note: In a situation where your input sequences have a variable length,
-# use input_shape=(None, num_feature).
 model.add(RNN(HIDDEN_SIZE, input_shape=(MAXLEN, len(chars))))
-# As the decoder RNN's input, repeatedly provide with the last output of
-# RNN for each time step. Repeat 'DIGITS + 1' times as that's the maximum
-# length of output, e.g., when DIGITS=3, max output is 999+999=1998.
 model.add(layers.RepeatVector(DIGITS + 1))
-# The decoder RNN could be multiple layers stacked or a single layer.
 for _ in range(LAYERS):
-    # By setting return_sequences to True, return not only the last output but
-    # all the outputs so far in the form of (num_samples, timesteps,
-    # output_dim). This is necessary as TimeDistributed in the below expects
-    # the first dimension to be the timesteps.
     model.add(RNN(HIDDEN_SIZE, return_sequences=True))
 
-# Apply a dense layer to the every temporal slice of an input. For each of step
-# of the output sequence, decide which character should be chosen.
 model.add(layers.TimeDistributed(layers.Dense(len(chars), activation='softmax')))
 model.compile(loss='categorical_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])
 model.summary()
 
-# Train the model each generation and show predictions against the validation
-# dataset.
 for iteration in range(1, 200):
     print()
     print('-' * 50)
@@ -1109,8 +1037,6 @@ for iteration in range(1, 200):
               batch_size=BATCH_SIZE,
               epochs=1,
               validation_data=(x_val, y_val))
-    # Select 10 samples from the validation set at random so we can visualize
-    # errors.
     for i in range(10):
         ind = np.random.randint(0, len(x_val))
         rowx, rowy = x_val[np.array([ind])], y_val[np.array([ind])]
@@ -1127,7 +1053,6 @@ for iteration in range(1, 200):
         print(guess)
 <eos>
 '''
-#This example demonstrates how to write custom layers for Keras.
 
 We build a custom activation layer called 'Antirectifier',
 which modifies the shape of the tensor that passes through it.
@@ -1156,13 +1081,10 @@ class Antirectifier(layers.Layer):
 
     It can be used in place of a ReLU.
 
-    # Input shape
         2D tensor of shape (samples, n)
 
-    # Output shape
         2D tensor of shape (samples, 2*n)
 
-    # Theoretical justification
         When applying ReLU, assuming that the distribution
         of the previous output is approximately centered around 0.,
         you are discarding half of your input. This is inefficient.
@@ -1189,12 +1111,10 @@ class Antirectifier(layers.Layer):
         return K.concatenate([pos, neg], axis=1)
 
 
-# global parameters
 batch_size = 128
 num_classes = 10
 epochs = 40
 
-# the data, split between train and test sets
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
 x_train = x_train.reshape(60000, 784)
@@ -1206,11 +1126,9 @@ x_test /= 255
 print(x_train.shape[0], 'train samples')
 print(x_test.shape[0], 'test samples')
 
-# convert class vectors to binary class matrices
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
-# build the model
 model = Sequential()
 model.add(layers.Dense(256, input_shape=(784,)))
 model.add(Antirectifier())
@@ -1221,23 +1139,17 @@ model.add(layers.Dropout(0.1))
 model.add(layers.Dense(num_classes))
 model.add(layers.Activation('softmax'))
 
-# compile the model
 model.compile(loss='categorical_crossentropy',
               optimizer='rmsprop',
               metrics=['accuracy'])
 
-# train the model
 model.fit(x_train, y_train,
           batch_size=batch_size,
           epochs=epochs,
           verbose=1,
           validation_data=(x_test, y_test))
-
-# next, compare with an equivalent network
-# with2x bigger Dense layers and ReLU
 <eos>
 '''
-#Trains a memory network on the bAbI dataset.
 
 References:
 
@@ -1293,11 +1205,9 @@ def parse_stories(lines, only_supporting=False):
             q, a, supporting = line.split('\t')
             q = tokenize(q)
             if only_supporting:
-                # Only select the related substory
                 supporting = map(int, supporting.split())
                 substory = [story[i - 1] for i in supporting]
             else:
-                # Provide all the substories
                 substory = [x for x in story if x]
             data.append((substory, q, a))
             story.append('')
@@ -1337,7 +1247,7 @@ try:
     path = get_file('babi-tasks-v1-2.tar.gz',
                     origin='https://s3.amazonaws.com/text-datasets/'
                            'babi_tasks_1-20_v1-2.tar.gz')
-except:
+except BaseException:
     print('Error downloading dataset, please download it manually:\n'
           '$ wget http://www.thespermwhale.com/jaseweston/babi/tasks_1-20_v1-2'
           '.tar.gz\n'
@@ -1346,10 +1256,8 @@ except:
 
 
 challenges = {
-    # QA1 with 10,000 samples
     'single_supporting_fact_10k': 'tasks_1-20_v1-2/en-10k/qa1_'
                                   'single-supporting-fact_{}.txt',
-    # QA2 with 10,000 samples
     'two_supporting_facts_10k': 'tasks_1-20_v1-2/en-10k/qa2_'
                                 'two-supporting-facts_{}.txt',
 }
@@ -1366,7 +1274,6 @@ for story, q, answer in train_stories + test_stories:
     vocab |= set(story + q + [answer])
 vocab = sorted(vocab)
 
-# Reserve 0 for masking via pad_sequences
 vocab_size = len(vocab) + 1
 story_maxlen = max(map(len, (x for x, _, _ in train_stories + test_stories)))
 query_maxlen = max(map(len, (x for _, x, _ in train_stories + test_stories)))
@@ -1402,75 +1309,53 @@ print('answers_test shape:', answers_test.shape)
 print('-')
 print('Compiling...')
 
-# placeholders
 input_sequence = Input((story_maxlen,))
 question = Input((query_maxlen,))
 
-# encoders
-# embed the input sequence into a sequence of vectors
 input_encoder_m = Sequential()
 input_encoder_m.add(Embedding(input_dim=vocab_size,
                               output_dim=64))
 input_encoder_m.add(Dropout(0.3))
-# output: (samples, story_maxlen, embedding_dim)
 
-# embed the input into a sequence of vectors of size query_maxlen
 input_encoder_c = Sequential()
 input_encoder_c.add(Embedding(input_dim=vocab_size,
                               output_dim=query_maxlen))
 input_encoder_c.add(Dropout(0.3))
-# output: (samples, story_maxlen, query_maxlen)
 
-# embed the question into a sequence of vectors
 question_encoder = Sequential()
 question_encoder.add(Embedding(input_dim=vocab_size,
                                output_dim=64,
                                input_length=query_maxlen))
 question_encoder.add(Dropout(0.3))
-# output: (samples, query_maxlen, embedding_dim)
 
-# encode input sequence and questions (which are indices)
-# to sequences of dense vectors
 input_encoded_m = input_encoder_m(input_sequence)
 input_encoded_c = input_encoder_c(input_sequence)
 question_encoded = question_encoder(question)
 
-# compute a 'match' between the first input vector sequence
-# and the question vector sequence
-# shape: `(samples, story_maxlen, query_maxlen)`
 match = dot([input_encoded_m, question_encoded], axes=(2, 2))
 match = Activation('softmax')(match)
 
-# add the match matrix with the second input vector sequence
 response = add([match, input_encoded_c])  # (samples, story_maxlen, query_maxlen)
 response = Permute((2, 1))(response)  # (samples, query_maxlen, story_maxlen)
 
-# concatenate the match matrix with the question vector sequence
 answer = concatenate([response, question_encoded])
 
-# the original paper uses a matrix multiplication for this reduction step.
-# we choose to use a RNN instead.
 answer = LSTM(32)(answer)  # (samples, 32)
 
-# one regularization layer -- more would probably be needed.
 answer = Dropout(0.3)(answer)
 answer = Dense(vocab_size)(answer)  # (samples, vocab_size)
-# we output a probability distribution over the vocabulary
 answer = Activation('softmax')(answer)
 
-# build the final model
 model = Model([input_sequence, question], answer)
 model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
-# train
 model.fit([inputs_train, queries_train], answers_train,
           batch_size=32,
           epochs=120,
           validation_data=([inputs_test, queries_test], answers_test))
 <eos>
 '''
-# Trains two recurrent neural networks based upon a story and a question.
 
 The resulting merged vector is then queried to answer a range of bAbI tasks.
 
@@ -1504,7 +1389,6 @@ QA20 - Agent's Motivations   | 91               | 90.7
 For the resources related to the bAbI project, refer to:
 https://research.facebook.com/researchers/1543934539189348
 
-### Notes
 
 - With default word, sentence, and query vector sizes, the GRU model achieves:
   - 52.1% test accuracy on QA1 in 20 epochs (2 seconds per epoch on CPU)
@@ -1571,11 +1455,9 @@ def parse_stories(lines, only_supporting=False):
             q, a, supporting = line.split('\t')
             q = tokenize(q)
             if only_supporting:
-                # Only select the related substory
                 supporting = map(int, supporting.split())
                 substory = [story[i - 1] for i in supporting]
             else:
-                # Provide all the substories
                 substory = [x for x in story if x]
             data.append((substory, q, a))
             story.append('')
@@ -1606,7 +1488,6 @@ def vectorize_stories(data, word_idx, story_maxlen, query_maxlen):
     for story, query, answer in data:
         x = [word_idx[w] for w in story]
         xq = [word_idx[w] for w in query]
-        # let's not forget that index 0 is reserved
         y = np.zeros(len(word_idx) + 1)
         y[word_idx[answer]] = 1
         xs.append(x)
@@ -1631,21 +1512,14 @@ try:
     path = get_file('babi-tasks-v1-2.tar.gz',
                     origin='https://s3.amazonaws.com/text-datasets/'
                            'babi_tasks_1-20_v1-2.tar.gz')
-except:
+except BaseException:
     print('Error downloading dataset, please download it manually:\n'
           '$ wget http://www.thespermwhale.com/jaseweston/babi/tasks_1-20_v1-2'
           '.tar.gz\n'
           '$ mv tasks_1-20_v1-2.tar.gz ~/.keras/datasets/babi-tasks-v1-2.tar.gz')
     raise
 
-# Default QA1 with 1000 samples
-# challenge = 'tasks_1-20_v1-2/en/qa1_single-supporting-fact_{}.txt'
-# QA1 with 10,000 samples
-# challenge = 'tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_{}.txt'
-# QA2 with 1000 samples
 challenge = 'tasks_1-20_v1-2/en/qa2_two-supporting-facts_{}.txt'
-# QA2 with 10,000 samples
-# challenge = 'tasks_1-20_v1-2/en-10k/qa2_two-supporting-facts_{}.txt'
 with tarfile.open(path) as tar:
     train = get_stories(tar.extractfile(challenge.format('train')))
     test = get_stories(tar.extractfile(challenge.format('test')))
@@ -1655,7 +1529,6 @@ for story, q, answer in train + test:
     vocab |= set(story + q + [answer])
 vocab = sorted(vocab)
 
-# Reserve 0 for masking via pad_sequences
 vocab_size = len(vocab) + 1
 word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
 story_maxlen = max(map(len, (x for x, _, _ in train + test)))
@@ -1700,7 +1573,6 @@ loss, acc = model.evaluate([tx, txq], ty,
 print('Test loss / test accuracy = {:.4f} / {:.4f}'.format(loss, acc))
 <eos>
 '''
-#Train a simple deep CNN on the CIFAR10 small images dataset.
 
 It gets to 75% validation accuracy in 25 epochs, and 79% after 50 epochs.
 (it's still underfitting at that point, though).
@@ -1723,13 +1595,11 @@ num_predictions = 20
 save_dir = os.path.join(os.getcwd(), 'saved_models')
 model_name = 'keras_cifar10_trained_model.h5'
 
-# The data, split between train and test sets:
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
 print('x_train shape:', x_train.shape)
 print(x_train.shape[0], 'train samples')
 print(x_test.shape[0], 'test samples')
 
-# Convert class vectors to binary class matrices.
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
@@ -1756,10 +1626,8 @@ model.add(Dropout(0.5))
 model.add(Dense(num_classes))
 model.add(Activation('softmax'))
 
-# initiate RMSprop optimizer
 opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
 
-# Let's train the model using RMSprop
 model.compile(loss='categorical_crossentropy',
               optimizer=opt,
               metrics=['accuracy'])
@@ -1778,7 +1646,6 @@ if not data_augmentation:
               shuffle=True)
 else:
     print('Using real-time data augmentation.')
-    # This will do preprocessing and realtime data augmentation:
     datagen = ImageDataGenerator(
         featurewise_center=False,  # set input mean to 0 over the dataset
         samplewise_center=False,  # set each sample mean to 0
@@ -1787,46 +1654,34 @@ else:
         zca_whitening=False,  # apply ZCA whitening
         zca_epsilon=1e-06,  # epsilon for ZCA whitening
         rotation_range=0,  # randomly rotate images in the range (degrees, 0 to 180)
-        # randomly shift images horizontally (fraction of total width)
         width_shift_range=0.1,
-        # randomly shift images vertically (fraction of total height)
         height_shift_range=0.1,
         shear_range=0.,  # set range for random shear
         zoom_range=0.,  # set range for random zoom
         channel_shift_range=0.,  # set range for random channel shifts
-        # set mode for filling points outside the input boundaries
         fill_mode='nearest',
         cval=0.,  # value used for fill_mode = "constant"
         horizontal_flip=True,  # randomly flip images
         vertical_flip=False,  # randomly flip images
-        # set rescaling factor (applied before any other transformation)
         rescale=None,
-        # set function that will be applied on each input
         preprocessing_function=None,
-        # image data format, either "channels_first" or "channels_last"
         data_format=None,
-        # fraction of images reserved for validation (strictly between 0 and 1)
         validation_split=0.0)
 
-    # Compute quantities required for feature-wise normalization
-    # (std, mean, and principal components if ZCA whitening is applied).
     datagen.fit(x_train)
 
-    # Fit the model on the batches generated by datagen.flow().
     model.fit_generator(datagen.flow(x_train, y_train,
                                      batch_size=batch_size),
                         epochs=epochs,
                         validation_data=(x_test, y_test),
                         workers=4)
 
-# Save model and weights
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
 model_path = os.path.join(save_dir, model_name)
 model.save(model_path)
 print('Saved trained model at %s ' % model_path)
 
-# Score trained model.
 scores = model.evaluate(x_test, y_test, verbose=1)
 print('Test loss:', scores[0])
 print('Test accuracy:', scores[1])
@@ -1861,11 +1716,9 @@ from keras.preprocessing.image import ImageDataGenerator
 def squash(x, axis=-1):
     """The Squashing Function.
     The nonlinear activation function used in Capsule Network
-    # Arguments
         x: Input Tensor.
         axis: Integer axis along which the squashing function is to be applied.
 
-    # Returns
         Tensor with scaled value of the input tensor
     """
     s_squared_norm = K.sum(K.square(x), axis, keepdims=True) + K.epsilon()
@@ -1876,11 +1729,9 @@ def squash(x, axis=-1):
 def margin_loss(y_true, y_pred):
     """Margin loss
 
-    # Arguments
         y_true: tensor of true targets.
         y_pred: tensor of predicted targets.
 
-    # Returns
         Tensor with one scalar loss entry per sample.
     """
     lamb, margin = 0.5, 0.1
@@ -1908,7 +1759,6 @@ class Capsule(layers.Layer):
     The Capsule implementation is from https://github.com/bojone/Capsule/
 
 
-    # Arguments
         num_capsule: An integer, the number of capsules.
         dim_capsule: An integer, the dimensions of the capsule.
         routings: An integer, the number of routings.
@@ -2003,7 +1853,6 @@ x_test /= 255
 y_train = utils.to_categorical(y_train, num_classes)
 y_test = utils.to_categorical(y_test, num_classes)
 
-# A simple Conv2D model
 input_image = layers.Input(shape=(None, None, 3))
 x = layers.Conv2D(64, (3, 3), activation='relu')(input_image)
 x = layers.Conv2D(64, (3, 3), activation='relu')(x)
@@ -2011,22 +1860,15 @@ x = layers.AveragePooling2D((2, 2))(x)
 x = layers.Conv2D(128, (3, 3), activation='relu')(x)
 x = layers.Conv2D(128, (3, 3), activation='relu')(x)
 
-# Now, we reshape it to (batch_size, input_num_capsule, input_dim_capsule)
-# then connect a capsule layer.
-# The output of final model is the lengths of 10 capsules, which have 16 dimensions.
-# The length of the output vector of the capsule expresses the probability of
-# existence of the entity, so the problem becomes a 10 two-classification problem.
 
 x = layers.Reshape((-1, 128))(x)
 capsule = Capsule(10, 16, 3, True)(x)
 output = layers.Lambda(lambda z: K.sqrt(K.sum(K.square(z), 2)))(capsule)
 model = Model(inputs=input_image, outputs=output)
 
-# Margin loss is used
 model.compile(loss=margin_loss, optimizer='adam', metrics=['accuracy'])
 model.summary()
 
-# Compare the performance with and without data augmentation
 data_augmentation = True
 
 if not data_augmentation:
@@ -2040,7 +1882,6 @@ if not data_augmentation:
         shuffle=True)
 else:
     print('Using real-time data augmentation.')
-    # This will do preprocessing and real-time data augmentation:
     datagen = ImageDataGenerator(
         featurewise_center=False,  # set input mean to 0 over the dataset
         samplewise_center=False,  # set each sample mean to 0
@@ -2054,28 +1895,2543 @@ else:
         shear_range=0.,  # set range for random shear
         zoom_range=0.,  # set range for random zoom
         channel_shift_range=0.,  # set range for random channel shifts
-        # set mode for filling points outside the input boundaries
         fill_mode='nearest',
         cval=0.,  # value used for fill_mode = "constant"
         horizontal_flip=True,  # randomly flip images
         vertical_flip=False,  # randomly flip images
-        # set rescaling factor (applied before any other transformation)
         rescale=None,
-        # set function that will be applied on each input
         preprocessing_function=None,
-        # image data format, either "channels_first" or "channels_last"
         data_format=None,
-        # fraction of images reserved for validation (strictly between 0 and 1)
         validation_split=0.0)
 
-    # Compute quantities required for feature-wise normalization
-    # (std, mean, and principal components if ZCA whitening is applied).
     datagen.fit(x_train)
 
-    # Fit the model on the batches generated by datagen.flow().
     model.fit_generator(
         datagen.flow(x_train, y_train, batch_size=batch_size),
         epochs=epochs,
         validation_data=(x_test, y_test),
         workers=4)
+<eos>
+'''
+
+Using TensorFlow internal augmentation APIs by replacing ImageGenerator with
+an embedded AugmentLayer using LambdaLayer, which is faster on GPU.
+
+** Benchmark of `ImageGenerator`(IG) vs `AugmentLayer`(AL) both using augmentation
+2D:**
+
+(backend = Tensorflow-GPU, Nvidia Tesla P100-SXM2)
+
+Epoch no. | IG %Accuracy   | IG Performance | AL %Accuracy  | AL Performance
+---------:|---------------:|---------------:|--------------:|--------------:
+1         | 44.84          | 15 ms/step     | 45.54         | 358 us/step
+2         | 52.34          |  8 ms/step     | 50.55         | 285 us/step
+8         | 65.45          |  8 ms/step     | 65.59         | 281 us/step
+25        | 76.74          |  8 ms/step     | 76.17         | 280 us/step
+100       | 78.81          |  8 ms/step     | 78.70         | 285 us/step
+
+Settings: horizontal_flip = True
+
+
+Epoch no. | IG %Accuracy   | IG Performance | AL %Accuracy  | AL Performance
+---------:|---------------:|---------------:|--------------:|--------------:
+1         | 43.46          | 15 ms/step     | 42.21         | 334 us/step
+2         | 48.95          | 11 ms/step     | 48.06         | 282 us/step
+8         | 63.59          | 11 ms/step     | 61.35         | 290 us/step
+25        | 72.25          | 12 ms/step     | 71.08         | 287 us/step
+100       | 76.35          | 11 ms/step     | 74.62         | 286 us/step
+
+Settings: rotation = 30.0
+
+
+(Corner process and rotation precision by `ImageGenerator` and `AugmentLayer`
+are slightly different.)
+'''
+
+from __future__ import print_function
+import tensorflow as tf
+import keras
+from keras.datasets import cifar10
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.layers import Conv2D, Lambda, MaxPooling2D
+from keras import backend as K
+import os
+
+if K.backend() != 'tensorflow':
+    raise RuntimeError('This example can only run with the '
+                       'TensorFlow backend, '
+                       'because it requires TF-native augmentation APIs')
+
+
+def augment_2d(inputs, rotation=0, horizontal_flip=False, vertical_flip=False):
+    """Apply additive augmentation on 2D data.
+
+      rotation: A float, the degree range for rotation (0 <= rotation < 180),
+          e.g. 3 for random image rotation between (-3.0, 3.0).
+      horizontal_flip: A boolean, whether to allow random horizontal flip,
+          e.g. true for 50% possibility to flip image horizontally.
+      vertical_flip: A boolean, whether to allow random vertical flip,
+          e.g. true for 50% possibility to flip image vertically.
+
+      input data after augmentation, whose shape is the same as its original.
+    """
+    if inputs.dtype != tf.float32:
+        inputs = tf.image.convert_image_dtype(inputs, dtype=tf.float32)
+
+    with tf.name_scope('augmentation'):
+        shp = tf.shape(inputs)
+        batch_size, height, width = shp[0], shp[1], shp[2]
+        width = tf.cast(width, tf.float32)
+        height = tf.cast(height, tf.float32)
+
+        transforms = []
+        identity = tf.constant([1, 0, 0, 0, 1, 0, 0, 0], dtype=tf.float32)
+
+        if rotation > 0:
+            angle_rad = rotation * 3.141592653589793 / 180.0
+            angles = tf.random_uniform([batch_size], -angle_rad, angle_rad)
+            f = tf.contrib.image.angles_to_projective_transforms(angles,
+                                                                 height, width)
+            transforms.append(f)
+
+        if horizontal_flip:
+            coin = tf.less(tf.random_uniform([batch_size], 0, 1.0), 0.5)
+            shape = [-1., 0., width, 0., 1., 0., 0., 0.]
+            flip_transform = tf.convert_to_tensor(shape, dtype=tf.float32)
+            flip = tf.tile(tf.expand_dims(flip_transform, 0), [batch_size, 1])
+            noflip = tf.tile(tf.expand_dims(identity, 0), [batch_size, 1])
+            transforms.append(tf.where(coin, flip, noflip))
+
+        if vertical_flip:
+            coin = tf.less(tf.random_uniform([batch_size], 0, 1.0), 0.5)
+            shape = [1., 0., 0., 0., -1., height, 0., 0.]
+            flip_transform = tf.convert_to_tensor(shape, dtype=tf.float32)
+            flip = tf.tile(tf.expand_dims(flip_transform, 0), [batch_size, 1])
+            noflip = tf.tile(tf.expand_dims(identity, 0), [batch_size, 1])
+            transforms.append(tf.where(coin, flip, noflip))
+
+    if transforms:
+        f = tf.contrib.image.compose_transforms(*transforms)
+        inputs = tf.contrib.image.transform(inputs, f, interpolation='BILINEAR')
+    return inputs
+
+
+batch_size = 32
+num_classes = 10
+epochs = 100
+num_predictions = 20
+save_dir = '/tmp/saved_models'
+model_name = 'keras_cifar10_trained_model.h5'
+
+(x_train, y_train), (x_test, y_test) = cifar10.load_data()
+print('x_train shape:', x_train.shape)
+print(x_train.shape[0], 'train samples')
+print(x_test.shape[0], 'test samples')
+
+y_train = keras.utils.to_categorical(y_train, num_classes)
+y_test = keras.utils.to_categorical(y_test, num_classes)
+
+model = Sequential()
+model.add(Lambda(augment_2d,
+                 input_shape=x_train.shape[1:],
+                 arguments={'rotation': 8.0, 'horizontal_flip': True}))
+model.add(Conv2D(32, (3, 3), padding='same'))
+model.add(Activation('relu'))
+model.add(Conv2D(32, (3, 3)))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
+
+model.add(Conv2D(64, (3, 3), padding='same'))
+model.add(Activation('relu'))
+model.add(Conv2D(64, (3, 3)))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
+
+model.add(Flatten())
+model.add(Dense(512))
+model.add(Activation('relu'))
+model.add(Dropout(0.5))
+model.add(Dense(num_classes))
+model.add(Activation('softmax'))
+
+opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
+
+model.compile(loss='categorical_crossentropy',
+              optimizer=opt,
+              metrics=['accuracy'])
+
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+x_train /= 255
+x_test /= 255
+
+model.fit(x_train, y_train,
+          batch_size=batch_size,
+          epochs=epochs,
+          validation_data=(x_test, y_test),
+          shuffle=True)
+
+if not os.path.isdir(save_dir):
+    os.makedirs(save_dir)
+model_path = os.path.join(save_dir, model_name)
+model.save(model_path)
+print('Saved trained model at %s ' % model_path)
+
+scores = model.evaluate(x_test, y_test, verbose=1)
+print('Test loss:', scores[0])
+print('Test accuracy:', scores[1])
+<eos>
+"""
+
+ResNet v1:
+[Deep Residual Learning for Image Recognition
+](https://arxiv.org/pdf/1512.03385.pdf)
+
+ResNet v2:
+[Identity Mappings in Deep Residual Networks
+](https://arxiv.org/pdf/1603.05027.pdf)
+
+
+Model|n|200-epoch accuracy|Original paper accuracy |sec/epoch GTX1080Ti
+:------------|--:|-------:|-----------------------:|---:
+ResNet20   v1|  3| 92.16 %|                 91.25 %|35
+ResNet32   v1|  5| 92.46 %|                 92.49 %|50
+ResNet44   v1|  7| 92.50 %|                 92.83 %|70
+ResNet56   v1|  9| 92.71 %|                 93.03 %|90
+ResNet110  v1| 18| 92.65 %|            93.39+-.16 %|165
+ResNet164  v1| 27|     - %|                 94.07 %|  -
+ResNet1001 v1|N/A|     - %|                 92.39 %|  -
+
+&nbsp;
+
+Model|n|200-epoch accuracy|Original paper accuracy |sec/epoch GTX1080Ti
+:------------|--:|-------:|-----------------------:|---:
+ResNet20   v2|  2|     - %|                     - %|---
+ResNet32   v2|N/A| NA    %|            NA         %| NA
+ResNet44   v2|N/A| NA    %|            NA         %| NA
+ResNet56   v2|  6| 93.01 %|            NA         %|100
+ResNet110  v2| 12| 93.15 %|            93.63      %|180
+ResNet164  v2| 18|     - %|            94.54      %|  -
+ResNet1001 v2|111|     - %|            95.08+-.14 %|  -
+"""
+
+from __future__ import print_function
+import keras
+from keras.layers import Dense, Conv2D, BatchNormalization, Activation
+from keras.layers import AveragePooling2D, Input, Flatten
+from keras.optimizers import Adam
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler
+from keras.callbacks import ReduceLROnPlateau
+from keras.preprocessing.image import ImageDataGenerator
+from keras.regularizers import l2
+from keras import backend as K
+from keras.models import Model
+from keras.datasets import cifar10
+import numpy as np
+import os
+
+batch_size = 32  # orig paper trained all networks with batch_size=128
+epochs = 200
+data_augmentation = True
+num_classes = 10
+
+subtract_pixel_mean = True
+
+n = 3
+
+version = 1
+
+if version == 1:
+    depth = n * 6 + 2
+elif version == 2:
+    depth = n * 9 + 2
+
+model_type = 'ResNet%dv%d' % (depth, version)
+
+(x_train, y_train), (x_test, y_test) = cifar10.load_data()
+
+input_shape = x_train.shape[1:]
+
+x_train = x_train.astype('float32') / 255
+x_test = x_test.astype('float32') / 255
+
+if subtract_pixel_mean:
+    x_train_mean = np.mean(x_train, axis=0)
+    x_train -= x_train_mean
+    x_test -= x_train_mean
+
+print('x_train shape:', x_train.shape)
+print(x_train.shape[0], 'train samples')
+print(x_test.shape[0], 'test samples')
+print('y_train shape:', y_train.shape)
+
+y_train = keras.utils.to_categorical(y_train, num_classes)
+y_test = keras.utils.to_categorical(y_test, num_classes)
+
+
+def lr_schedule(epoch):
+    """Learning Rate Schedule
+
+    Learning rate is scheduled to be reduced after 80, 120, 160, 180 epochs.
+    Called automatically every epoch as part of callbacks during training.
+
+        epoch (int): The number of epochs
+
+        lr (float32): learning rate
+    """
+    lr = 1e-3
+    if epoch > 180:
+        lr *= 0.5e-3
+    elif epoch > 160:
+        lr *= 1e-3
+    elif epoch > 120:
+        lr *= 1e-2
+    elif epoch > 80:
+        lr *= 1e-1
+    print('Learning rate: ', lr)
+    return lr
+
+
+def resnet_layer(inputs,
+                 num_filters=16,
+                 kernel_size=3,
+                 strides=1,
+                 activation='relu',
+                 batch_normalization=True,
+                 conv_first=True):
+    """2D Convolution-Batch Normalization-Activation stack builder
+
+        inputs (tensor): input tensor from input image or previous layer
+        num_filters (int): Conv2D number of filters
+        kernel_size (int): Conv2D square kernel dimensions
+        strides (int): Conv2D square stride dimensions
+        activation (string): activation name
+        batch_normalization (bool): whether to include batch normalization
+        conv_first (bool): conv-bn-activation (True) or
+            bn-activation-conv (False)
+
+        x (tensor): tensor as input to the next layer
+    """
+    conv = Conv2D(num_filters,
+                  kernel_size=kernel_size,
+                  strides=strides,
+                  padding='same',
+                  kernel_initializer='he_normal',
+                  kernel_regularizer=l2(1e-4))
+
+    x = inputs
+    if conv_first:
+        x = conv(x)
+        if batch_normalization:
+            x = BatchNormalization()(x)
+        if activation is not None:
+            x = Activation(activation)(x)
+    else:
+        if batch_normalization:
+            x = BatchNormalization()(x)
+        if activation is not None:
+            x = Activation(activation)(x)
+        x = conv(x)
+    return x
+
+
+def resnet_v1(input_shape, depth, num_classes=10):
+    """ResNet Version 1 Model builder [a]
+
+    Stacks of 2 x (3 x 3) Conv2D-BN-ReLU
+    Last ReLU is after the shortcut connection.
+    At the beginning of each stage, the feature map size is halved (downsampled)
+    by a convolutional layer with strides=2, while the number of filters is
+    doubled. Within each stage, the layers have the same number filters and the
+    same number of filters.
+    Features maps sizes:
+    stage 0: 32x32, 16
+    stage 1: 16x16, 32
+    stage 2:  8x8,  64
+    The Number of parameters is approx the same as Table 6 of [a]:
+    ResNet20 0.27M
+    ResNet32 0.46M
+    ResNet44 0.66M
+    ResNet56 0.85M
+    ResNet110 1.7M
+
+        input_shape (tensor): shape of input image tensor
+        depth (int): number of core convolutional layers
+        num_classes (int): number of classes (CIFAR10 has 10)
+
+        model (Model): Keras model instance
+    """
+    if (depth - 2) % 6 != 0:
+        raise ValueError('depth should be 6n+2 (eg 20, 32, 44 in [a])')
+    num_filters = 16
+    num_res_blocks = int((depth - 2) / 6)
+
+    inputs = Input(shape=input_shape)
+    x = resnet_layer(inputs=inputs)
+    for stack in range(3):
+        for res_block in range(num_res_blocks):
+            strides = 1
+            if stack > 0 and res_block == 0:  # first layer but not first stack
+                strides = 2  # downsample
+            y = resnet_layer(inputs=x,
+                             num_filters=num_filters,
+                             strides=strides)
+            y = resnet_layer(inputs=y,
+                             num_filters=num_filters,
+                             activation=None)
+            if stack > 0 and res_block == 0:  # first layer but not first stack
+                x = resnet_layer(inputs=x,
+                                 num_filters=num_filters,
+                                 kernel_size=1,
+                                 strides=strides,
+                                 activation=None,
+                                 batch_normalization=False)
+            x = keras.layers.add([x, y])
+            x = Activation('relu')(x)
+        num_filters *= 2
+
+    x = AveragePooling2D(pool_size=8)(x)
+    y = Flatten()(x)
+    outputs = Dense(num_classes,
+                    activation='softmax',
+                    kernel_initializer='he_normal')(y)
+
+    model = Model(inputs=inputs, outputs=outputs)
+    return model
+
+
+def resnet_v2(input_shape, depth, num_classes=10):
+    """ResNet Version 2 Model builder [b]
+
+    Stacks of (1 x 1)-(3 x 3)-(1 x 1) BN-ReLU-Conv2D or also known as
+    bottleneck layer
+    First shortcut connection per layer is 1 x 1 Conv2D.
+    Second and onwards shortcut connection is identity.
+    At the beginning of each stage, the feature map size is halved (downsampled)
+    by a convolutional layer with strides=2, while the number of filter maps is
+    doubled. Within each stage, the layers have the same number filters and the
+    same filter map sizes.
+    Features maps sizes:
+    conv1  : 32x32,  16
+    stage 0: 32x32,  64
+    stage 1: 16x16, 128
+    stage 2:  8x8,  256
+
+        input_shape (tensor): shape of input image tensor
+        depth (int): number of core convolutional layers
+        num_classes (int): number of classes (CIFAR10 has 10)
+
+        model (Model): Keras model instance
+    """
+    if (depth - 2) % 9 != 0:
+        raise ValueError('depth should be 9n+2 (eg 56 or 110 in [b])')
+    num_filters_in = 16
+    num_res_blocks = int((depth - 2) / 9)
+
+    inputs = Input(shape=input_shape)
+    x = resnet_layer(inputs=inputs,
+                     num_filters=num_filters_in,
+                     conv_first=True)
+
+    for stage in range(3):
+        for res_block in range(num_res_blocks):
+            activation = 'relu'
+            batch_normalization = True
+            strides = 1
+            if stage == 0:
+                num_filters_out = num_filters_in * 4
+                if res_block == 0:  # first layer and first stage
+                    activation = None
+                    batch_normalization = False
+            else:
+                num_filters_out = num_filters_in * 2
+                if res_block == 0:  # first layer but not first stage
+                    strides = 2    # downsample
+
+            y = resnet_layer(inputs=x,
+                             num_filters=num_filters_in,
+                             kernel_size=1,
+                             strides=strides,
+                             activation=activation,
+                             batch_normalization=batch_normalization,
+                             conv_first=False)
+            y = resnet_layer(inputs=y,
+                             num_filters=num_filters_in,
+                             conv_first=False)
+            y = resnet_layer(inputs=y,
+                             num_filters=num_filters_out,
+                             kernel_size=1,
+                             conv_first=False)
+            if res_block == 0:
+                x = resnet_layer(inputs=x,
+                                 num_filters=num_filters_out,
+                                 kernel_size=1,
+                                 strides=strides,
+                                 activation=None,
+                                 batch_normalization=False)
+            x = keras.layers.add([x, y])
+
+        num_filters_in = num_filters_out
+
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    x = AveragePooling2D(pool_size=8)(x)
+    y = Flatten()(x)
+    outputs = Dense(num_classes,
+                    activation='softmax',
+                    kernel_initializer='he_normal')(y)
+
+    model = Model(inputs=inputs, outputs=outputs)
+    return model
+
+
+if version == 2:
+    model = resnet_v2(input_shape=input_shape, depth=depth)
+else:
+    model = resnet_v1(input_shape=input_shape, depth=depth)
+
+model.compile(loss='categorical_crossentropy',
+              optimizer=Adam(lr=lr_schedule(0)),
+              metrics=['accuracy'])
+model.summary()
+print(model_type)
+
+save_dir = os.path.join(os.getcwd(), 'saved_models')
+model_name = 'cifar10_%s_model.{epoch:03d}.h5' % model_type
+if not os.path.isdir(save_dir):
+    os.makedirs(save_dir)
+filepath = os.path.join(save_dir, model_name)
+
+checkpoint = ModelCheckpoint(filepath=filepath,
+                             monitor='val_acc',
+                             verbose=1,
+                             save_best_only=True)
+
+lr_scheduler = LearningRateScheduler(lr_schedule)
+
+lr_reducer = ReduceLROnPlateau(factor=np.sqrt(0.1),
+                               cooldown=0,
+                               patience=5,
+                               min_lr=0.5e-6)
+
+callbacks = [checkpoint, lr_reducer, lr_scheduler]
+
+if not data_augmentation:
+    print('Not using data augmentation.')
+    model.fit(x_train, y_train,
+              batch_size=batch_size,
+              epochs=epochs,
+              validation_data=(x_test, y_test),
+              shuffle=True,
+              callbacks=callbacks)
+else:
+    print('Using real-time data augmentation.')
+    datagen = ImageDataGenerator(
+        featurewise_center=False,
+        samplewise_center=False,
+        featurewise_std_normalization=False,
+        samplewise_std_normalization=False,
+        zca_whitening=False,
+        zca_epsilon=1e-06,
+        rotation_range=0,
+        width_shift_range=0.1,
+        height_shift_range=0.1,
+        shear_range=0.,
+        zoom_range=0.,
+        channel_shift_range=0.,
+        fill_mode='nearest',
+        cval=0.,
+        horizontal_flip=True,
+        vertical_flip=False,
+        rescale=None,
+        preprocessing_function=None,
+        data_format=None,
+        validation_split=0.0)
+
+    datagen.fit(x_train)
+
+    model.fit_generator(datagen.flow(x_train, y_train, batch_size=batch_size),
+                        validation_data=(x_test, y_test),
+                        epochs=epochs, verbose=1, workers=4,
+                        callbacks=callbacks)
+
+scores = model.evaluate(x_test, y_test, verbose=1)
+print('Test loss:', scores[0])
+print('Test accuracy:', scores[1])
+<eos>
+
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+
+from keras.models import Model
+
+import keras.applications.resnet50 as resnet
+from keras.layers import UpSampling2D, Conv2D
+
+
+INPUT_IMG_FILE = "dog.jpg"
+
+NETWORK_INPUT_SIZE = 224
+MODEL_CLASS = resnet.ResNet50
+PREPROCESS_FN = resnet.preprocess_input
+LAST_CONV_LAYER = "activation_49"
+PRED_LAYER = "fc1000"
+
+N_CLASSES = 1000
+
+
+def load_img(fname, input_size, preprocess_fn):
+    original_img = cv2.imread(fname)[:, :, ::-1]
+    original_size = (original_img.shape[1], original_img.shape[0])
+    img = cv2.resize(original_img, (input_size, input_size))
+    imgs = np.expand_dims(preprocess_fn(img), axis=0)
+    return imgs, original_img, original_size
+
+
+def get_cam_model(model_class,
+                  input_size=224,
+                  last_conv_layer="activation_49",
+                  pred_layer="fc1000"):
+    model = model_class(input_shape=(input_size, input_size, 3))
+
+    final_params = model.get_layer(pred_layer).get_weights()
+    final_params = (final_params[0].reshape(
+        1, 1, -1, N_CLASSES), final_params[1])
+
+    last_conv_output = model.get_layer(last_conv_layer).output
+    x = UpSampling2D(size=(32, 32), interpolation="bilinear")(
+        last_conv_output)
+    x = Conv2D(filters=N_CLASSES, kernel_size=(
+        1, 1), name="predictions_2")(x)
+
+    cam_model = Model(inputs=model.input,
+                      outputs=[model.output, x])
+    cam_model.get_layer("predictions_2").set_weights(final_params)
+    return cam_model
+
+
+def postprocess(preds, cams, top_k=1):
+    idxes = np.argsort(preds[0])[-top_k:]
+    class_activation_map = np.zeros_like(cams[0, :, :, 0])
+    for i in idxes:
+        class_activation_map += cams[0, :, :, i]
+    return class_activation_map
+
+
+imgs, original_img, original_size = load_img(INPUT_IMG_FILE,
+                                             input_size=NETWORK_INPUT_SIZE,
+                                             preprocess_fn=resnet.preprocess_input)
+
+model = get_cam_model(resnet.ResNet50,
+                      NETWORK_INPUT_SIZE,
+                      LAST_CONV_LAYER,
+                      PRED_LAYER)
+preds, cams = model.predict(imgs)
+
+class_activation_map = postprocess(preds, cams)
+
+plt.imshow(original_img, alpha=0.5)
+plt.imshow(cv2.resize(class_activation_map,
+                      original_size), cmap='jet', alpha=0.5)
+plt.show()
+<eos>
+"""
+
+This script can run on CPU in a few minutes.
+
+Results example: ![Visualization](http://i.imgur.com/4nj4KjN.jpg)
+"""
+from __future__ import print_function
+
+import time
+import numpy as np
+from PIL import Image as pil_image
+from keras.preprocessing.image import save_img
+from keras import layers
+from keras.applications import vgg16
+from keras import backend as K
+
+
+def normalize(x):
+    """utility function to normalize a tensor.
+
+        x: An input tensor.
+
+        The normalized input tensor.
+    """
+    return x / (K.sqrt(K.mean(K.square(x))) + K.epsilon())
+
+
+def deprocess_image(x):
+    """utility function to convert a float array into a valid uint8 image.
+
+        x: A numpy-array representing the generated image.
+
+        A processed numpy-array, which could be used in e.g. imshow.
+    """
+    x -= x.mean()
+    x /= (x.std() + K.epsilon())
+    x *= 0.25
+
+    x += 0.5
+    x = np.clip(x, 0, 1)
+
+    x *= 255
+    if K.image_data_format() == 'channels_first':
+        x = x.transpose((1, 2, 0))
+    x = np.clip(x, 0, 255).astype('uint8')
+    return x
+
+
+def process_image(x, former):
+    """utility function to convert a valid uint8 image back into a float array.
+       Reverses `deprocess_image`.
+
+        x: A numpy-array, which could be used in e.g. imshow.
+        former: The former numpy-array.
+                Need to determine the former mean and variance.
+
+        A processed numpy-array representing the generated image.
+    """
+    if K.image_data_format() == 'channels_first':
+        x = x.transpose((2, 0, 1))
+    return (x / 255 - 0.5) * 4 * former.std() + former.mean()
+
+
+def visualize_layer(model,
+                    layer_name,
+                    step=1.,
+                    epochs=15,
+                    upscaling_steps=9,
+                    upscaling_factor=1.2,
+                    output_dim=(412, 412),
+                    filter_range=(0, None)):
+    """Visualizes the most relevant filters of one conv-layer in a certain model.
+
+        model: The model containing layer_name.
+        layer_name: The name of the layer to be visualized.
+                    Has to be a part of model.
+        step: step size for gradient ascent.
+        epochs: Number of iterations for gradient ascent.
+        upscaling_steps: Number of upscaling steps.
+                         Starting image is in this case (80, 80).
+        upscaling_factor: Factor to which to slowly upgrade
+                          the image towards output_dim.
+        output_dim: [img_width, img_height] The output image dimensions.
+        filter_range: Tupel[lower, upper]
+                      Determines the to be computed filter numbers.
+                      If the second value is `None`,
+                      the last filter will be inferred as the upper boundary.
+    """
+
+    def _generate_filter_image(input_img,
+                               layer_output,
+                               filter_index):
+        """Generates image for one particular filter.
+
+            input_img: The input-image Tensor.
+            layer_output: The output-image Tensor.
+            filter_index: The to be processed filter number.
+                          Assumed to be valid.
+
+            Either None if no image could be generated.
+            or a tuple of the image (array) itself and the last loss.
+        """
+        s_time = time.time()
+
+        if K.image_data_format() == 'channels_first':
+            loss = K.mean(layer_output[:, filter_index, :, :])
+        else:
+            loss = K.mean(layer_output[:, :, :, filter_index])
+
+        grads = K.gradients(loss, input_img)[0]
+
+        grads = normalize(grads)
+
+        iterate = K.function([input_img], [loss, grads])
+
+        intermediate_dim = tuple(
+            int(x / (upscaling_factor ** upscaling_steps)) for x in output_dim)
+        if K.image_data_format() == 'channels_first':
+            input_img_data = np.random.random(
+                (1, 3, intermediate_dim[0], intermediate_dim[1]))
+        else:
+            input_img_data = np.random.random(
+                (1, intermediate_dim[0], intermediate_dim[1], 3))
+        input_img_data = (input_img_data - 0.5) * 20 + 128
+
+        for up in reversed(range(upscaling_steps)):
+            for _ in range(epochs):
+                loss_value, grads_value = iterate([input_img_data])
+                input_img_data += grads_value * step
+
+                if loss_value <= K.epsilon():
+                    return None
+
+            intermediate_dim = tuple(
+                int(x / (upscaling_factor ** up)) for x in output_dim)
+            img = deprocess_image(input_img_data[0])
+            img = np.array(pil_image.fromarray(img).resize(intermediate_dim,
+                                                           pil_image.BICUBIC))
+            input_img_data = [process_image(img, input_img_data[0])]
+
+        img = deprocess_image(input_img_data[0])
+        e_time = time.time()
+        print('Costs of filter {:3}: {:5.0f} ( {:4.2f}s )'.format(filter_index,
+                                                                  loss_value,
+                                                                  e_time - s_time))
+        return img, loss_value
+
+    def _draw_filters(filters, n=None):
+        """Draw the best filters in a nxn grid.
+
+            filters: A List of generated images and their corresponding losses
+                     for each processed filter.
+            n: dimension of the grid.
+               If none, the largest possible square will be used
+        """
+        if n is None:
+            n = int(np.floor(np.sqrt(len(filters))))
+
+        filters.sort(key=lambda x: x[1], reverse=True)
+        filters = filters[:n * n]
+
+        MARGIN = 5
+        width = n * output_dim[0] + (n - 1) * MARGIN
+        height = n * output_dim[1] + (n - 1) * MARGIN
+        stitched_filters = np.zeros((width, height, 3), dtype='uint8')
+
+        for i in range(n):
+            for j in range(n):
+                img, _ = filters[i * n + j]
+                width_margin = (output_dim[0] + MARGIN) * i
+                height_margin = (output_dim[1] + MARGIN) * j
+                stitched_filters[
+                    width_margin: width_margin + output_dim[0],
+                    height_margin: height_margin + output_dim[1], :] = img
+
+        save_img('vgg_{0:}_{1:}x{1:}.png'.format(layer_name, n), stitched_filters)
+
+    assert len(model.inputs) == 1
+    input_img = model.inputs[0]
+
+    layer_dict = dict([(layer.name, layer) for layer in model.layers[1:]])
+
+    output_layer = layer_dict[layer_name]
+    assert isinstance(output_layer, layers.Conv2D)
+
+    filter_lower = filter_range[0]
+    filter_upper = (filter_range[1]
+                    if filter_range[1] is not None
+                    else len(output_layer.get_weights()[1]))
+    assert(filter_lower >= 0
+           and filter_upper <= len(output_layer.get_weights()[1])
+           and filter_upper > filter_lower)
+    print('Compute filters {:} to {:}'.format(filter_lower, filter_upper))
+
+    processed_filters = []
+    for f in range(filter_lower, filter_upper):
+        img_loss = _generate_filter_image(input_img, output_layer.output, f)
+
+        if img_loss is not None:
+            processed_filters.append(img_loss)
+
+    print('{} filter processed.'.format(len(processed_filters)))
+    _draw_filters(processed_filters)
+
+
+if __name__ == '__main__':
+    LAYER_NAME = 'block5_conv1'
+
+    vgg = vgg16.VGG16(weights='imagenet', include_top=False)
+    print('Model loaded.')
+    vgg.summary()
+
+    visualize_layer(vgg, LAYER_NAME)
+<eos>
+"""
+
+This network is used to predict the next frame of an artificially
+generated movie which contains moving squares.
+"""
+from keras.models import Sequential
+from keras.layers.convolutional import Conv3D
+from keras.layers.convolutional_recurrent import ConvLSTM2D
+from keras.layers.normalization import BatchNormalization
+import numpy as np
+import pylab as plt
+
+
+seq = Sequential()
+seq.add(ConvLSTM2D(filters=40, kernel_size=(3, 3),
+                   input_shape=(None, 40, 40, 1),
+                   padding='same', return_sequences=True))
+seq.add(BatchNormalization())
+
+seq.add(ConvLSTM2D(filters=40, kernel_size=(3, 3),
+                   padding='same', return_sequences=True))
+seq.add(BatchNormalization())
+
+seq.add(ConvLSTM2D(filters=40, kernel_size=(3, 3),
+                   padding='same', return_sequences=True))
+seq.add(BatchNormalization())
+
+seq.add(ConvLSTM2D(filters=40, kernel_size=(3, 3),
+                   padding='same', return_sequences=True))
+seq.add(BatchNormalization())
+
+seq.add(Conv3D(filters=1, kernel_size=(3, 3, 3),
+               activation='sigmoid',
+               padding='same', data_format='channels_last'))
+seq.compile(loss='binary_crossentropy', optimizer='adadelta')
+
+
+def generate_movies(n_samples=1200, n_frames=15):
+    row = 80
+    col = 80
+    noisy_movies = np.zeros((n_samples, n_frames, row, col, 1), dtype=np.float)
+    shifted_movies = np.zeros((n_samples, n_frames, row, col, 1),
+                              dtype=np.float)
+
+    for i in range(n_samples):
+        n = np.random.randint(3, 8)
+
+        for j in range(n):
+            xstart = np.random.randint(20, 60)
+            ystart = np.random.randint(20, 60)
+            directionx = np.random.randint(0, 3) - 1
+            directiony = np.random.randint(0, 3) - 1
+
+            w = np.random.randint(2, 4)
+
+            for t in range(n_frames):
+                x_shift = xstart + directionx * t
+                y_shift = ystart + directiony * t
+                noisy_movies[i, t, x_shift - w: x_shift + w,
+                             y_shift - w: y_shift + w, 0] += 1
+
+                if np.random.randint(0, 2):
+                    noise_f = (-1)**np.random.randint(0, 2)
+                    noisy_movies[i, t,
+                                 x_shift - w - 1: x_shift + w + 1,
+                                 y_shift - w - 1: y_shift + w + 1,
+                                 0] += noise_f * 0.1
+
+                x_shift = xstart + directionx * (t + 1)
+                y_shift = ystart + directiony * (t + 1)
+                shifted_movies[i, t, x_shift - w: x_shift + w,
+                               y_shift - w: y_shift + w, 0] += 1
+
+    noisy_movies = noisy_movies[::, ::, 20:60, 20:60, ::]
+    shifted_movies = shifted_movies[::, ::, 20:60, 20:60, ::]
+    noisy_movies[noisy_movies >= 1] = 1
+    shifted_movies[shifted_movies >= 1] = 1
+    return noisy_movies, shifted_movies
+
+
+noisy_movies, shifted_movies = generate_movies(n_samples=1200)
+seq.fit(noisy_movies[:1000], shifted_movies[:1000], batch_size=10,
+        epochs=300, validation_split=0.05)
+
+which = 1004
+track = noisy_movies[which][:7, ::, ::, ::]
+
+for j in range(16):
+    new_pos = seq.predict(track[np.newaxis, ::, ::, ::, ::])
+    new = new_pos[::, -1, ::, ::, ::]
+    track = np.concatenate((track, new), axis=0)
+
+
+track2 = noisy_movies[which][::, ::, ::, ::]
+for i in range(15):
+    fig = plt.figure(figsize=(10, 5))
+
+    ax = fig.add_subplot(121)
+
+    if i >= 7:
+        ax.text(1, 3, 'Predictions !', fontsize=20, color='w')
+    else:
+        ax.text(1, 3, 'Initial trajectory', fontsize=20)
+
+    toplot = track[i, ::, ::, 0]
+
+    plt.imshow(toplot)
+    ax = fig.add_subplot(122)
+    plt.text(1, 3, 'Ground truth', fontsize=20)
+
+    toplot = track2[i, ::, ::, 0]
+    if i >= 2:
+        toplot = shifted_movies[which][i - 1, ::, ::, 0]
+
+    plt.imshow(toplot)
+    plt.savefig('%i_animate.png' % (i + 1))
+<eos>
+'''
+
+Run the script with:
+```python
+python deep_dream.py path_to_your_base_image.jpg prefix_for_results
+```
+e.g.:
+```python
+python deep_dream.py img/mypic.jpg results/dream
+```
+'''
+from __future__ import print_function
+
+from keras.preprocessing.image import load_img, save_img, img_to_array
+import numpy as np
+import scipy
+import argparse
+
+from keras.applications import inception_v3
+from keras import backend as K
+
+parser = argparse.ArgumentParser(description='Deep Dreams with Keras.')
+parser.add_argument('base_image_path', metavar='base', type=str,
+                    help='Path to the image to transform.')
+parser.add_argument('result_prefix', metavar='res_prefix', type=str,
+                    help='Prefix for the saved results.')
+
+args = parser.parse_args()
+base_image_path = args.base_image_path
+result_prefix = args.result_prefix
+
+settings = {
+    'features': {
+        'mixed2': 0.2,
+        'mixed3': 0.5,
+        'mixed4': 2.,
+        'mixed5': 1.5,
+    },
+}
+
+
+def preprocess_image(image_path):
+    img = load_img(image_path)
+    img = img_to_array(img)
+    img = np.expand_dims(img, axis=0)
+    img = inception_v3.preprocess_input(img)
+    return img
+
+
+def deprocess_image(x):
+    if K.image_data_format() == 'channels_first':
+        x = x.reshape((3, x.shape[2], x.shape[3]))
+        x = x.transpose((1, 2, 0))
+    else:
+        x = x.reshape((x.shape[1], x.shape[2], 3))
+    x /= 2.
+    x += 0.5
+    x *= 255.
+    x = np.clip(x, 0, 255).astype('uint8')
+    return x
+
+
+K.set_learning_phase(0)
+
+model = inception_v3.InceptionV3(weights='imagenet',
+                                 include_top=False)
+dream = model.input
+print('Model loaded.')
+
+layer_dict = dict([(layer.name, layer) for layer in model.layers])
+
+loss = K.variable(0.)
+for layer_name in settings['features']:
+    if layer_name not in layer_dict:
+        raise ValueError('Layer ' + layer_name + ' not found in model.')
+    coeff = settings['features'][layer_name]
+    x = layer_dict[layer_name].output
+    scaling = K.prod(K.cast(K.shape(x), 'float32'))
+    if K.image_data_format() == 'channels_first':
+        loss += coeff * K.sum(K.square(x[:, :, 2: -2, 2: -2])) / scaling
+    else:
+        loss += coeff * K.sum(K.square(x[:, 2: -2, 2: -2, :])) / scaling
+
+grads = K.gradients(loss, dream)[0]
+grads /= K.maximum(K.mean(K.abs(grads)), K.epsilon())
+
+outputs = [loss, grads]
+fetch_loss_and_grads = K.function([dream], outputs)
+
+
+def eval_loss_and_grads(x):
+    outs = fetch_loss_and_grads([x])
+    loss_value = outs[0]
+    grad_values = outs[1]
+    return loss_value, grad_values
+
+
+def resize_img(img, size):
+    img = np.copy(img)
+    if K.image_data_format() == 'channels_first':
+        factors = (1, 1,
+                   float(size[0]) / img.shape[2],
+                   float(size[1]) / img.shape[3])
+    else:
+        factors = (1,
+                   float(size[0]) / img.shape[1],
+                   float(size[1]) / img.shape[2],
+                   1)
+    return scipy.ndimage.zoom(img, factors, order=1)
+
+
+def gradient_ascent(x, iterations, step, max_loss=None):
+    for i in range(iterations):
+        loss_value, grad_values = eval_loss_and_grads(x)
+        if max_loss is not None and loss_value > max_loss:
+            break
+        print('..Loss value at', i, ':', loss_value)
+        x += step * grad_values
+    return x
+
+
+"""Process:
+
+- Load the original image.
+- Define a number of processing scales (i.e. image shapes),
+    from smallest to largest.
+- Resize the original image to the smallest scale.
+- For every scale, starting with the smallest (i.e. current one):
+    - Run gradient ascent
+    - Upscale image to the next scale
+    - Reinject the detail that was lost at upscaling time
+- Stop when we are back to the original size.
+
+To obtain the detail lost during upscaling, we simply
+take the original image, shrink it down, upscale it,
+and compare the result to the (resized) original image.
+"""
+
+
+step = 0.01  # Gradient ascent step size
+num_octave = 3  # Number of scales at which to run gradient ascent
+octave_scale = 1.4  # Size ratio between scales
+iterations = 20  # Number of ascent steps per scale
+max_loss = 10.
+
+img = preprocess_image(base_image_path)
+if K.image_data_format() == 'channels_first':
+    original_shape = img.shape[2:]
+else:
+    original_shape = img.shape[1:3]
+successive_shapes = [original_shape]
+for i in range(1, num_octave):
+    shape = tuple([int(dim / (octave_scale ** i)) for dim in original_shape])
+    successive_shapes.append(shape)
+successive_shapes = successive_shapes[::-1]
+original_img = np.copy(img)
+shrunk_original_img = resize_img(img, successive_shapes[0])
+
+for shape in successive_shapes:
+    print('Processing image shape', shape)
+    img = resize_img(img, shape)
+    img = gradient_ascent(img,
+                          iterations=iterations,
+                          step=step,
+                          max_loss=max_loss)
+    upscaled_shrunk_original_img = resize_img(shrunk_original_img, shape)
+    same_size_original = resize_img(original_img, shape)
+    lost_detail = same_size_original - upscaled_shrunk_original_img
+
+    img += lost_detail
+    shrunk_original_img = resize_img(original_img, shape)
+
+save_img(result_prefix + '.png', deprocess_image(np.copy(img)))
+<eos>
+'''
+This example uses a convolutional stack followed by a recurrent stack
+and a CTC logloss function to perform optical character recognition
+of generated text images. I have no evidence of whether it actually
+learns general shapes of text, or just is able to recognize all
+the different fonts thrown at it...the purpose is more to demonstrate CTC
+inside of Keras.  Note that the font list may need to be updated
+for the particular OS in use.
+
+This starts off with 4 letter words.  For the first 12 epochs, the
+difficulty is gradually increased using the TextImageGenerator class
+which is both a generator class for test/train data and a Keras
+callback class. After 20 epochs, longer sequences are thrown at it
+by recompiling the model to handle a wider image and rebuilding
+the word list to include two words separated by a space.
+
+The table below shows normalized edit distance values. Theano uses
+a slightly different CTC implementation, hence the different results.
+
+Epoch |   TF   |   TH
+-----:|-------:|-------:
+    10|  0.027 | 0.064
+    15|  0.038 | 0.035
+    20|  0.043 | 0.045
+    25|  0.014 | 0.019
+
+This requires ```cairo``` and ```editdistance``` packages:
+```python
+pip install cairocffi
+pip install editdistance
+```
+
+Created by Mike Henry
+https://github.com/mbhenry/
+'''
+import os
+import itertools
+import codecs
+import re
+import datetime
+import cairocffi as cairo
+import editdistance
+import numpy as np
+from scipy import ndimage
+import pylab
+from keras import backend as K
+from keras.layers.convolutional import Conv2D, MaxPooling2D
+from keras.layers import Input, Dense, Activation
+from keras.layers import Reshape, Lambda
+from keras.layers.merge import add, concatenate
+from keras.models import Model
+from keras.layers.recurrent import GRU
+from keras.optimizers import SGD
+from keras.utils.data_utils import get_file
+from keras.preprocessing import image
+import keras.callbacks
+
+
+OUTPUT_DIR = 'image_ocr'
+
+regex = r'^[a-z ]+$'
+alphabet = u'abcdefghijklmnopqrstuvwxyz '
+
+np.random.seed(55)
+
+
+def speckle(img):
+    severity = np.random.uniform(0, 0.6)
+    blur = ndimage.gaussian_filter(np.random.randn(*img.shape) * severity, 1)
+    img_speck = (img + blur)
+    img_speck[img_speck > 1] = 1
+    img_speck[img_speck <= 0] = 0
+    return img_speck
+
+
+def paint_text(text, w, h, rotate=False, ud=False, multi_fonts=False):
+    surface = cairo.ImageSurface(cairo.FORMAT_RGB24, w, h)
+    with cairo.Context(surface) as context:
+        context.set_source_rgb(1, 1, 1)  # White
+        context.paint()
+        if multi_fonts:
+            fonts = [
+                'Century Schoolbook', 'Courier', 'STIX',
+                'URW Chancery L', 'FreeMono']
+            context.select_font_face(
+                np.random.choice(fonts),
+                cairo.FONT_SLANT_NORMAL,
+                np.random.choice([cairo.FONT_WEIGHT_BOLD, cairo.FONT_WEIGHT_NORMAL]))
+        else:
+            context.select_font_face('Courier',
+                                     cairo.FONT_SLANT_NORMAL,
+                                     cairo.FONT_WEIGHT_BOLD)
+        context.set_font_size(25)
+        box = context.text_extents(text)
+        border_w_h = (4, 4)
+        if box[2] > (w - 2 * border_w_h[1]) or box[3] > (h - 2 * border_w_h[0]):
+            raise IOError(('Could not fit string into image.'
+                           'Max char count is too large for given image width.'))
+
+        max_shift_x = w - box[2] - border_w_h[0]
+        max_shift_y = h - box[3] - border_w_h[1]
+        top_left_x = np.random.randint(0, int(max_shift_x))
+        if ud:
+            top_left_y = np.random.randint(0, int(max_shift_y))
+        else:
+            top_left_y = h // 2
+        context.move_to(top_left_x - int(box[0]), top_left_y - int(box[1]))
+        context.set_source_rgb(0, 0, 0)
+        context.show_text(text)
+
+    buf = surface.get_data()
+    a = np.frombuffer(buf, np.uint8)
+    a.shape = (h, w, 4)
+    a = a[:, :, 0]  # grab single channel
+    a = a.astype(np.float32) / 255
+    a = np.expand_dims(a, 0)
+    if rotate:
+        a = image.random_rotation(a, 3 * (w - top_left_x) / w + 1)
+    a = speckle(a)
+
+    return a
+
+
+def shuffle_mats_or_lists(matrix_list, stop_ind=None):
+    ret = []
+    assert all([len(i) == len(matrix_list[0]) for i in matrix_list])
+    len_val = len(matrix_list[0])
+    if stop_ind is None:
+        stop_ind = len_val
+    assert stop_ind <= len_val
+
+    a = list(range(stop_ind))
+    np.random.shuffle(a)
+    a += list(range(stop_ind, len_val))
+    for mat in matrix_list:
+        if isinstance(mat, np.ndarray):
+            ret.append(mat[a])
+        elif isinstance(mat, list):
+            ret.append([mat[i] for i in a])
+        else:
+            raise TypeError('`shuffle_mats_or_lists` only supports '
+                            'numpy.array and list objects.')
+    return ret
+
+
+def text_to_labels(text):
+    ret = []
+    for char in text:
+        ret.append(alphabet.find(char))
+    return ret
+
+
+def labels_to_text(labels):
+    ret = []
+    for c in labels:
+        if c == len(alphabet):  # CTC Blank
+            ret.append("")
+        else:
+            ret.append(alphabet[c])
+    return "".join(ret)
+
+
+def is_valid_str(in_str):
+    search = re.compile(regex, re.UNICODE).search
+    return bool(search(in_str))
+
+
+class TextImageGenerator(keras.callbacks.Callback):
+
+    def __init__(self, monogram_file, bigram_file, minibatch_size,
+                 img_w, img_h, downsample_factor, val_split,
+                 absolute_max_string_len=16):
+
+        self.minibatch_size = minibatch_size
+        self.img_w = img_w
+        self.img_h = img_h
+        self.monogram_file = monogram_file
+        self.bigram_file = bigram_file
+        self.downsample_factor = downsample_factor
+        self.val_split = val_split
+        self.blank_label = self.get_output_size() - 1
+        self.absolute_max_string_len = absolute_max_string_len
+
+    def get_output_size(self):
+        return len(alphabet) + 1
+
+    def build_word_list(self, num_words, max_string_len=None, mono_fraction=0.5):
+        assert max_string_len <= self.absolute_max_string_len
+        assert num_words % self.minibatch_size == 0
+        assert (self.val_split * num_words) % self.minibatch_size == 0
+        self.num_words = num_words
+        self.string_list = [''] * self.num_words
+        tmp_string_list = []
+        self.max_string_len = max_string_len
+        self.Y_data = np.ones([self.num_words, self.absolute_max_string_len]) * -1
+        self.X_text = []
+        self.Y_len = [0] * self.num_words
+
+        def _is_length_of_word_valid(word):
+            return (max_string_len == -1
+                    or max_string_len is None
+                    or len(word) <= max_string_len)
+
+        with codecs.open(self.monogram_file, mode='r', encoding='utf-8') as f:
+            for line in f:
+                if len(tmp_string_list) == int(self.num_words * mono_fraction):
+                    break
+                word = line.rstrip()
+                if _is_length_of_word_valid(word):
+                    tmp_string_list.append(word)
+
+        with codecs.open(self.bigram_file, mode='r', encoding='utf-8') as f:
+            lines = f.readlines()
+            for line in lines:
+                if len(tmp_string_list) == self.num_words:
+                    break
+                columns = line.lower().split()
+                word = columns[0] + ' ' + columns[1]
+                if is_valid_str(word) and _is_length_of_word_valid(word):
+                    tmp_string_list.append(word)
+        if len(tmp_string_list) != self.num_words:
+            raise IOError('Could not pull enough words'
+                          'from supplied monogram and bigram files.')
+        self.string_list[::2] = tmp_string_list[:self.num_words // 2]
+        self.string_list[1::2] = tmp_string_list[self.num_words // 2:]
+
+        for i, word in enumerate(self.string_list):
+            self.Y_len[i] = len(word)
+            self.Y_data[i, 0:len(word)] = text_to_labels(word)
+            self.X_text.append(word)
+        self.Y_len = np.expand_dims(np.array(self.Y_len), 1)
+
+        self.cur_val_index = self.val_split
+        self.cur_train_index = 0
+
+    def get_batch(self, index, size, train):
+        if K.image_data_format() == 'channels_first':
+            X_data = np.ones([size, 1, self.img_w, self.img_h])
+        else:
+            X_data = np.ones([size, self.img_w, self.img_h, 1])
+
+        labels = np.ones([size, self.absolute_max_string_len])
+        input_length = np.zeros([size, 1])
+        label_length = np.zeros([size, 1])
+        source_str = []
+        for i in range(size):
+            if train and i > size - 4:
+                if K.image_data_format() == 'channels_first':
+                    X_data[i, 0, 0:self.img_w, :] = self.paint_func('')[0, :, :].T
+                else:
+                    X_data[i, 0:self.img_w, :, 0] = self.paint_func('',)[0, :, :].T
+                labels[i, 0] = self.blank_label
+                input_length[i] = self.img_w // self.downsample_factor - 2
+                label_length[i] = 1
+                source_str.append('')
+            else:
+                if K.image_data_format() == 'channels_first':
+                    X_data[i, 0, 0:self.img_w, :] = (
+                        self.paint_func(self.X_text[index + i])[0, :, :].T)
+                else:
+                    X_data[i, 0:self.img_w, :, 0] = (
+                        self.paint_func(self.X_text[index + i])[0, :, :].T)
+                labels[i, :] = self.Y_data[index + i]
+                input_length[i] = self.img_w // self.downsample_factor - 2
+                label_length[i] = self.Y_len[index + i]
+                source_str.append(self.X_text[index + i])
+        inputs = {'the_input': X_data,
+                  'the_labels': labels,
+                  'input_length': input_length,
+                  'label_length': label_length,
+                  'source_str': source_str  # used for visualization only
+                  }
+        outputs = {'ctc': np.zeros([size])}  # dummy data for dummy loss function
+        return (inputs, outputs)
+
+    def next_train(self):
+        while True:
+            ret = self.get_batch(self.cur_train_index,
+                                 self.minibatch_size, train=True)
+            self.cur_train_index += self.minibatch_size
+            if self.cur_train_index >= self.val_split:
+                self.cur_train_index = self.cur_train_index % 32
+                (self.X_text, self.Y_data, self.Y_len) = shuffle_mats_or_lists(
+                    [self.X_text, self.Y_data, self.Y_len], self.val_split)
+            yield ret
+
+    def next_val(self):
+        while True:
+            ret = self.get_batch(self.cur_val_index,
+                                 self.minibatch_size, train=False)
+            self.cur_val_index += self.minibatch_size
+            if self.cur_val_index >= self.num_words:
+                self.cur_val_index = self.val_split + self.cur_val_index % 32
+            yield ret
+
+    def on_train_begin(self, logs={}):
+        self.build_word_list(16000, 4, 1)
+        self.paint_func = lambda text: paint_text(
+            text, self.img_w, self.img_h,
+            rotate=False, ud=False, multi_fonts=False)
+
+    def on_epoch_begin(self, epoch, logs={}):
+        if 3 <= epoch < 6:
+            self.paint_func = lambda text: paint_text(
+                text, self.img_w, self.img_h,
+                rotate=False, ud=True, multi_fonts=False)
+        elif 6 <= epoch < 9:
+            self.paint_func = lambda text: paint_text(
+                text, self.img_w, self.img_h,
+                rotate=False, ud=True, multi_fonts=True)
+        elif epoch >= 9:
+            self.paint_func = lambda text: paint_text(
+                text, self.img_w, self.img_h,
+                rotate=True, ud=True, multi_fonts=True)
+        if epoch >= 21 and self.max_string_len < 12:
+            self.build_word_list(32000, 12, 0.5)
+
+
+def ctc_lambda_func(args):
+    y_pred, labels, input_length, label_length = args
+    y_pred = y_pred[:, 2:, :]
+    return K.ctc_batch_cost(labels, y_pred, input_length, label_length)
+
+
+def decode_batch(test_func, word_batch):
+    out = test_func([word_batch])[0]
+    ret = []
+    for j in range(out.shape[0]):
+        out_best = list(np.argmax(out[j, 2:], 1))
+        out_best = [k for k, g in itertools.groupby(out_best)]
+        outstr = labels_to_text(out_best)
+        ret.append(outstr)
+    return ret
+
+
+class VizCallback(keras.callbacks.Callback):
+
+    def __init__(self, run_name, test_func, text_img_gen, num_display_words=6):
+        self.test_func = test_func
+        self.output_dir = os.path.join(
+            OUTPUT_DIR, run_name)
+        self.text_img_gen = text_img_gen
+        self.num_display_words = num_display_words
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+
+    def show_edit_distance(self, num):
+        num_left = num
+        mean_norm_ed = 0.0
+        mean_ed = 0.0
+        while num_left > 0:
+            word_batch = next(self.text_img_gen)[0]
+            num_proc = min(word_batch['the_input'].shape[0], num_left)
+            decoded_res = decode_batch(self.test_func,
+                                       word_batch['the_input'][0:num_proc])
+            for j in range(num_proc):
+                edit_dist = editdistance.eval(decoded_res[j],
+                                              word_batch['source_str'][j])
+                mean_ed += float(edit_dist)
+                mean_norm_ed += float(edit_dist) / len(word_batch['source_str'][j])
+            num_left -= num_proc
+        mean_norm_ed = mean_norm_ed / num
+        mean_ed = mean_ed / num
+        print('\nOut of %d samples:  Mean edit distance:'
+              '%.3f Mean normalized edit distance: %0.3f'
+              % (num, mean_ed, mean_norm_ed))
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.model.save_weights(
+            os.path.join(self.output_dir, 'weights%02d.h5' % (epoch)))
+        self.show_edit_distance(256)
+        word_batch = next(self.text_img_gen)[0]
+        res = decode_batch(self.test_func,
+                           word_batch['the_input'][0:self.num_display_words])
+        if word_batch['the_input'][0].shape[0] < 256:
+            cols = 2
+        else:
+            cols = 1
+        for i in range(self.num_display_words):
+            pylab.subplot(self.num_display_words // cols, cols, i + 1)
+            if K.image_data_format() == 'channels_first':
+                the_input = word_batch['the_input'][i, 0, :, :]
+            else:
+                the_input = word_batch['the_input'][i, :, :, 0]
+            pylab.imshow(the_input.T, cmap='Greys_r')
+            pylab.xlabel(
+                'Truth = \'%s\'\nDecoded = \'%s\'' %
+                (word_batch['source_str'][i], res[i]))
+        fig = pylab.gcf()
+        fig.set_size_inches(10, 13)
+        pylab.savefig(os.path.join(self.output_dir, 'e%02d.png' % (epoch)))
+        pylab.close()
+
+
+def train(run_name, start_epoch, stop_epoch, img_w):
+    img_h = 64
+    words_per_epoch = 16000
+    val_split = 0.2
+    val_words = int(words_per_epoch * (val_split))
+
+    conv_filters = 16
+    kernel_size = (3, 3)
+    pool_size = 2
+    time_dense_size = 32
+    rnn_size = 512
+    minibatch_size = 32
+
+    if K.image_data_format() == 'channels_first':
+        input_shape = (1, img_w, img_h)
+    else:
+        input_shape = (img_w, img_h, 1)
+
+    fdir = os.path.dirname(
+        get_file('wordlists.tgz',
+                 origin='http://www.mythic-ai.com/datasets/wordlists.tgz',
+                 untar=True))
+
+    img_gen = TextImageGenerator(
+        monogram_file=os.path.join(fdir, 'wordlist_mono_clean.txt'),
+        bigram_file=os.path.join(fdir, 'wordlist_bi_clean.txt'),
+        minibatch_size=minibatch_size,
+        img_w=img_w,
+        img_h=img_h,
+        downsample_factor=(pool_size ** 2),
+        val_split=words_per_epoch - val_words)
+    act = 'relu'
+    input_data = Input(name='the_input', shape=input_shape, dtype='float32')
+    inner = Conv2D(conv_filters, kernel_size, padding='same',
+                   activation=act, kernel_initializer='he_normal',
+                   name='conv1')(input_data)
+    inner = MaxPooling2D(pool_size=(pool_size, pool_size), name='max1')(inner)
+    inner = Conv2D(conv_filters, kernel_size, padding='same',
+                   activation=act, kernel_initializer='he_normal',
+                   name='conv2')(inner)
+    inner = MaxPooling2D(pool_size=(pool_size, pool_size), name='max2')(inner)
+
+    conv_to_rnn_dims = (img_w // (pool_size ** 2),
+                        (img_h // (pool_size ** 2)) * conv_filters)
+    inner = Reshape(target_shape=conv_to_rnn_dims, name='reshape')(inner)
+
+    inner = Dense(time_dense_size, activation=act, name='dense1')(inner)
+
+    gru_1 = GRU(rnn_size, return_sequences=True,
+                kernel_initializer='he_normal', name='gru1')(inner)
+    gru_1b = GRU(rnn_size, return_sequences=True,
+                 go_backwards=True, kernel_initializer='he_normal',
+                 name='gru1_b')(inner)
+    gru1_merged = add([gru_1, gru_1b])
+    gru_2 = GRU(rnn_size, return_sequences=True,
+                kernel_initializer='he_normal', name='gru2')(gru1_merged)
+    gru_2b = GRU(rnn_size, return_sequences=True, go_backwards=True,
+                 kernel_initializer='he_normal', name='gru2_b')(gru1_merged)
+
+    inner = Dense(img_gen.get_output_size(), kernel_initializer='he_normal',
+                  name='dense2')(concatenate([gru_2, gru_2b]))
+    y_pred = Activation('softmax', name='softmax')(inner)
+    Model(inputs=input_data, outputs=y_pred).summary()
+
+    labels = Input(name='the_labels',
+                   shape=[img_gen.absolute_max_string_len], dtype='float32')
+    input_length = Input(name='input_length', shape=[1], dtype='int64')
+    label_length = Input(name='label_length', shape=[1], dtype='int64')
+    loss_out = Lambda(
+        ctc_lambda_func, output_shape=(1,),
+        name='ctc')([y_pred, labels, input_length, label_length])
+
+    sgd = SGD(lr=0.02, decay=1e-6, momentum=0.9, nesterov=True, clipnorm=5)
+
+    model = Model(inputs=[input_data, labels, input_length, label_length],
+                  outputs=loss_out)
+
+    model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer=sgd)
+    if start_epoch > 0:
+        weight_file = os.path.join(
+            OUTPUT_DIR,
+            os.path.join(run_name, 'weights%02d.h5' % (start_epoch - 1)))
+        model.load_weights(weight_file)
+    test_func = K.function([input_data], [y_pred])
+
+    viz_cb = VizCallback(run_name, test_func, img_gen.next_val())
+
+    model.fit_generator(
+        generator=img_gen.next_train(),
+        steps_per_epoch=(words_per_epoch - val_words) // minibatch_size,
+        epochs=stop_epoch,
+        validation_data=img_gen.next_val(),
+        validation_steps=val_words // minibatch_size,
+        callbacks=[viz_cb, img_gen],
+        initial_epoch=start_epoch)
+
+
+if __name__ == '__main__':
+    run_name = datetime.datetime.now().strftime('%Y:%m:%d:%H:%M:%S')
+    train(run_name, 0, 20, 128)
+    train(run_name, 20, 25, 512)
+<eos>
+'''
+
+Output after 4 epochs on CPU: ~0.8146
+Time per epoch on CPU (Core i7): ~150s.
+'''
+
+from __future__ import print_function
+import numpy as np
+
+from keras.preprocessing import sequence
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Embedding, LSTM, Bidirectional
+from keras.datasets import imdb
+
+
+max_features = 20000
+maxlen = 100
+batch_size = 32
+
+print('Loading data...')
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
+print(len(x_train), 'train sequences')
+print(len(x_test), 'test sequences')
+
+print('Pad sequences (samples x time)')
+x_train = sequence.pad_sequences(x_train, maxlen=maxlen)
+x_test = sequence.pad_sequences(x_test, maxlen=maxlen)
+print('x_train shape:', x_train.shape)
+print('x_test shape:', x_test.shape)
+y_train = np.array(y_train)
+y_test = np.array(y_test)
+
+model = Sequential()
+model.add(Embedding(max_features, 128, input_length=maxlen))
+model.add(Bidirectional(LSTM(64)))
+model.add(Dropout(0.5))
+model.add(Dense(1, activation='sigmoid'))
+
+model.compile('adam', 'binary_crossentropy', metrics=['accuracy'])
+
+print('Train...')
+model.fit(x_train, y_train,
+          batch_size=batch_size,
+          epochs=4,
+          validation_data=[x_test, y_test])
+<eos>
+'''
+
+Gets to 0.89 test accuracy after 2 epochs. </br>
+90s/epoch on Intel i5 2.4Ghz CPU. </br>
+10s/epoch on Tesla K40 GPU.
+'''
+from __future__ import print_function
+
+from keras.preprocessing import sequence
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Activation
+from keras.layers import Embedding
+from keras.layers import Conv1D, GlobalMaxPooling1D
+from keras.datasets import imdb
+
+max_features = 5000
+maxlen = 400
+batch_size = 32
+embedding_dims = 50
+filters = 250
+kernel_size = 3
+hidden_dims = 250
+epochs = 2
+
+print('Loading data...')
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
+print(len(x_train), 'train sequences')
+print(len(x_test), 'test sequences')
+
+print('Pad sequences (samples x time)')
+x_train = sequence.pad_sequences(x_train, maxlen=maxlen)
+x_test = sequence.pad_sequences(x_test, maxlen=maxlen)
+print('x_train shape:', x_train.shape)
+print('x_test shape:', x_test.shape)
+
+print('Build model...')
+model = Sequential()
+
+model.add(Embedding(max_features,
+                    embedding_dims,
+                    input_length=maxlen))
+model.add(Dropout(0.2))
+
+model.add(Conv1D(filters,
+                 kernel_size,
+                 padding='valid',
+                 activation='relu',
+                 strides=1))
+model.add(GlobalMaxPooling1D())
+
+model.add(Dense(hidden_dims))
+model.add(Dropout(0.2))
+model.add(Activation('relu'))
+
+model.add(Dense(1))
+model.add(Activation('sigmoid'))
+
+model.compile(loss='binary_crossentropy',
+              optimizer='adam',
+              metrics=['accuracy'])
+model.fit(x_train, y_train,
+          batch_size=batch_size,
+          epochs=epochs,
+          validation_data=(x_test, y_test))
+<eos>
+'''
+
+Gets to 0.8498 test accuracy after 2 epochs. 41 s/epoch on K520 GPU.
+'''
+from __future__ import print_function
+
+from keras.preprocessing import sequence
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Activation
+from keras.layers import Embedding
+from keras.layers import LSTM
+from keras.layers import Conv1D, MaxPooling1D
+from keras.datasets import imdb
+
+max_features = 20000
+maxlen = 100
+embedding_size = 128
+
+kernel_size = 5
+filters = 64
+pool_size = 4
+
+lstm_output_size = 70
+
+batch_size = 30
+epochs = 2
+
+'''
+Note:
+batch_size is highly sensitive.
+Only 2 epochs are needed as the dataset is very small.
+'''
+
+print('Loading data...')
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
+print(len(x_train), 'train sequences')
+print(len(x_test), 'test sequences')
+
+print('Pad sequences (samples x time)')
+x_train = sequence.pad_sequences(x_train, maxlen=maxlen)
+x_test = sequence.pad_sequences(x_test, maxlen=maxlen)
+print('x_train shape:', x_train.shape)
+print('x_test shape:', x_test.shape)
+
+print('Build model...')
+
+model = Sequential()
+model.add(Embedding(max_features, embedding_size, input_length=maxlen))
+model.add(Dropout(0.25))
+model.add(Conv1D(filters,
+                 kernel_size,
+                 padding='valid',
+                 activation='relu',
+                 strides=1))
+model.add(MaxPooling1D(pool_size=pool_size))
+model.add(LSTM(lstm_output_size))
+model.add(Dense(1))
+model.add(Activation('sigmoid'))
+
+model.compile(loss='binary_crossentropy',
+              optimizer='adam',
+              metrics=['accuracy'])
+
+print('Train...')
+model.fit(x_train, y_train,
+          batch_size=batch_size,
+          epochs=epochs,
+          validation_data=(x_test, y_test))
+score, acc = model.evaluate(x_test, y_test, batch_size=batch_size)
+print('Test score:', score)
+print('Test accuracy:', acc)
+<eos>
+'''
+
+Based on Joulin et al's paper:
+
+[Bags of Tricks for Efficient Text Classification
+](https://arxiv.org/abs/1607.01759)
+
+Results on IMDB datasets with uni and bi-gram embeddings:
+
+Embedding|Accuracy, 5 epochs|Speed (s/epoch)|Hardware
+:--------|-----------------:|----:|:-------
+Uni-gram |            0.8813|    8|i7 CPU
+Bi-gram  |            0.9056|    2|GTx 980M GPU
+
+'''
+
+from __future__ import print_function
+import numpy as np
+
+from keras.preprocessing import sequence
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import Embedding
+from keras.layers import GlobalAveragePooling1D
+from keras.datasets import imdb
+
+
+def create_ngram_set(input_list, ngram_value=2):
+    """
+    Extract a set of n-grams from a list of integers.
+
+    >>> create_ngram_set([1, 4, 9, 4, 1, 4], ngram_value=2)
+    {(4, 9), (4, 1), (1, 4), (9, 4)}
+
+    >>> create_ngram_set([1, 4, 9, 4, 1, 4], ngram_value=3)
+    [(1, 4, 9), (4, 9, 4), (9, 4, 1), (4, 1, 4)]
+    """
+    return set(zip(*[input_list[i:] for i in range(ngram_value)]))
+
+
+def add_ngram(sequences, token_indice, ngram_range=2):
+    """
+    Augment the input list of list (sequences) by appending n-grams values.
+
+    Example: adding bi-gram
+    >>> sequences = [[1, 3, 4, 5], [1, 3, 7, 9, 2]]
+    >>> token_indice = {(1, 3): 1337, (9, 2): 42, (4, 5): 2017}
+    >>> add_ngram(sequences, token_indice, ngram_range=2)
+    [[1, 3, 4, 5, 1337, 2017], [1, 3, 7, 9, 2, 1337, 42]]
+
+    Example: adding tri-gram
+    >>> sequences = [[1, 3, 4, 5], [1, 3, 7, 9, 2]]
+    >>> token_indice = {(1, 3): 1337, (9, 2): 42, (4, 5): 2017, (7, 9, 2): 2018}
+    >>> add_ngram(sequences, token_indice, ngram_range=3)
+    [[1, 3, 4, 5, 1337, 2017], [1, 3, 7, 9, 2, 1337, 42, 2018]]
+    """
+    new_sequences = []
+    for input_list in sequences:
+        new_list = input_list[:]
+        for ngram_value in range(2, ngram_range + 1):
+            for i in range(len(new_list) - ngram_value + 1):
+                ngram = tuple(new_list[i:i + ngram_value])
+                if ngram in token_indice:
+                    new_list.append(token_indice[ngram])
+        new_sequences.append(new_list)
+
+    return new_sequences
+
+
+ngram_range = 1
+max_features = 20000
+maxlen = 400
+batch_size = 32
+embedding_dims = 50
+epochs = 5
+
+print('Loading data...')
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
+print(len(x_train), 'train sequences')
+print(len(x_test), 'test sequences')
+print('Average train sequence length: {}'.format(
+    np.mean(list(map(len, x_train)), dtype=int)))
+print('Average test sequence length: {}'.format(
+    np.mean(list(map(len, x_test)), dtype=int)))
+
+if ngram_range > 1:
+    print('Adding {}-gram features'.format(ngram_range))
+    ngram_set = set()
+    for input_list in x_train:
+        for i in range(2, ngram_range + 1):
+            set_of_ngram = create_ngram_set(input_list, ngram_value=i)
+            ngram_set.update(set_of_ngram)
+
+    start_index = max_features + 1
+    token_indice = {v: k + start_index for k, v in enumerate(ngram_set)}
+    indice_token = {token_indice[k]: k for k in token_indice}
+
+    max_features = np.max(list(indice_token.keys())) + 1
+
+    x_train = add_ngram(x_train, token_indice, ngram_range)
+    x_test = add_ngram(x_test, token_indice, ngram_range)
+    print('Average train sequence length: {}'.format(
+        np.mean(list(map(len, x_train)), dtype=int)))
+    print('Average test sequence length: {}'.format(
+        np.mean(list(map(len, x_test)), dtype=int)))
+
+print('Pad sequences (samples x time)')
+x_train = sequence.pad_sequences(x_train, maxlen=maxlen)
+x_test = sequence.pad_sequences(x_test, maxlen=maxlen)
+print('x_train shape:', x_train.shape)
+print('x_test shape:', x_test.shape)
+
+print('Build model...')
+model = Sequential()
+
+model.add(Embedding(max_features,
+                    embedding_dims,
+                    input_length=maxlen))
+
+model.add(GlobalAveragePooling1D())
+
+model.add(Dense(1, activation='sigmoid'))
+
+model.compile(loss='binary_crossentropy',
+              optimizer='adam',
+              metrics=['accuracy'])
+
+model.fit(x_train, y_train,
+          batch_size=batch_size,
+          epochs=epochs,
+          validation_data=(x_test, y_test))
+<eos>
+'''
+
+The dataset is actually too small for LSTM to be of any advantage
+compared to simpler, much faster methods such as TF-IDF + LogReg.
+
+**Notes**
+
+- RNNs are tricky. Choice of batch size is important,
+choice of loss and optimizer is critical, etc.
+Some configurations won't converge.
+
+- LSTM loss decrease patterns during training can be quite different
+from what you see with CNNs/MLPs/etc.
+
+'''
+from __future__ import print_function
+
+from keras.preprocessing import sequence
+from keras.models import Sequential
+from keras.layers import Dense, Embedding
+from keras.layers import LSTM
+from keras.datasets import imdb
+
+max_features = 20000
+maxlen = 80
+batch_size = 32
+
+print('Loading data...')
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
+print(len(x_train), 'train sequences')
+print(len(x_test), 'test sequences')
+
+print('Pad sequences (samples x time)')
+x_train = sequence.pad_sequences(x_train, maxlen=maxlen)
+x_test = sequence.pad_sequences(x_test, maxlen=maxlen)
+print('x_train shape:', x_train.shape)
+print('x_test shape:', x_test.shape)
+
+print('Build model...')
+model = Sequential()
+model.add(Embedding(max_features, 128))
+model.add(LSTM(128, dropout=0.2, recurrent_dropout=0.2))
+model.add(Dense(1, activation='sigmoid'))
+
+model.compile(loss='binary_crossentropy',
+              optimizer='adam',
+              metrics=['accuracy'])
+
+print('Train...')
+model.fit(x_train, y_train,
+          batch_size=batch_size,
+          epochs=15,
+          validation_data=(x_test, y_test))
+score, acc = model.evaluate(x_test, y_test,
+                            batch_size=batch_size)
+print('Test score:', score)
+print('Test accuracy:', acc)
+<eos>
+'''
+
+This script demonstrates how to implement a basic character-level
+sequence-to-sequence model. We apply it to translating
+short English sentences into short French sentences,
+character-by-character. Note that it is fairly unusual to
+do character-level machine translation, as word-level
+models are more common in this domain.
+
+**Summary of the algorithm**
+
+- We start with input sequences from a domain (e.g. English sentences)
+    and corresponding target sequences from another domain
+    (e.g. French sentences).
+- An encoder LSTM turns input sequences to 2 state vectors
+    (we keep the last LSTM state and discard the outputs).
+- A decoder LSTM is trained to turn the target sequences into
+    the same sequence but offset by one timestep in the future,
+    a training process called "teacher forcing" in this context.
+    It uses as initial state the state vectors from the encoder.
+    Effectively, the decoder learns to generate `targets[t+1...]`
+    given `targets[...t]`, conditioned on the input sequence.
+- In inference mode, when we want to decode unknown input sequences, we:
+    - Encode the input sequence into state vectors
+    - Start with a target sequence of size 1
+        (just the start-of-sequence character)
+    - Feed the state vectors and 1-char target sequence
+        to the decoder to produce predictions for the next character
+    - Sample the next character using these predictions
+        (we simply use argmax).
+    - Append the sampled character to the target sequence
+    - Repeat until we generate the end-of-sequence character or we
+        hit the character limit.
+
+**Data download**
+
+[English to French sentence pairs.
+](http://www.manythings.org/anki/fra-eng.zip)
+
+[Lots of neat sentence pairs datasets.
+](http://www.manythings.org/anki/)
+
+**References**
+
+- [Sequence to Sequence Learning with Neural Networks
+   ](https://arxiv.org/abs/1409.3215)
+- [Learning Phrase Representations using
+    RNN Encoder-Decoder for Statistical Machine Translation
+    ](https://arxiv.org/abs/1406.1078)
+'''
+from __future__ import print_function
+
+from keras.models import Model
+from keras.layers import Input, LSTM, Dense
+import numpy as np
+
+batch_size = 64  # Batch size for training.
+epochs = 100  # Number of epochs to train for.
+latent_dim = 256  # Latent dimensionality of the encoding space.
+num_samples = 10000  # Number of samples to train on.
+data_path = 'fra-eng/fra.txt'
+
+input_texts = []
+target_texts = []
+input_characters = set()
+target_characters = set()
+with open(data_path, 'r', encoding='utf-8') as f:
+    lines = f.read().split('\n')
+for line in lines[: min(num_samples, len(lines) - 1)]:
+    input_text, target_text = line.split('\t')
+    target_text = '\t' + target_text + '\n'
+    input_texts.append(input_text)
+    target_texts.append(target_text)
+    for char in input_text:
+        if char not in input_characters:
+            input_characters.add(char)
+    for char in target_text:
+        if char not in target_characters:
+            target_characters.add(char)
+
+input_characters = sorted(list(input_characters))
+target_characters = sorted(list(target_characters))
+num_encoder_tokens = len(input_characters)
+num_decoder_tokens = len(target_characters)
+max_encoder_seq_length = max([len(txt) for txt in input_texts])
+max_decoder_seq_length = max([len(txt) for txt in target_texts])
+
+print('Number of samples:', len(input_texts))
+print('Number of unique input tokens:', num_encoder_tokens)
+print('Number of unique output tokens:', num_decoder_tokens)
+print('Max sequence length for inputs:', max_encoder_seq_length)
+print('Max sequence length for outputs:', max_decoder_seq_length)
+
+input_token_index = dict(
+    [(char, i) for i, char in enumerate(input_characters)])
+target_token_index = dict(
+    [(char, i) for i, char in enumerate(target_characters)])
+
+encoder_input_data = np.zeros(
+    (len(input_texts), max_encoder_seq_length, num_encoder_tokens),
+    dtype='float32')
+decoder_input_data = np.zeros(
+    (len(input_texts), max_decoder_seq_length, num_decoder_tokens),
+    dtype='float32')
+decoder_target_data = np.zeros(
+    (len(input_texts), max_decoder_seq_length, num_decoder_tokens),
+    dtype='float32')
+
+for i, (input_text, target_text) in enumerate(zip(input_texts, target_texts)):
+    for t, char in enumerate(input_text):
+        encoder_input_data[i, t, input_token_index[char]] = 1.
+    for t, char in enumerate(target_text):
+        decoder_input_data[i, t, target_token_index[char]] = 1.
+        if t > 0:
+            decoder_target_data[i, t - 1, target_token_index[char]] = 1.
+
+encoder_inputs = Input(shape=(None, num_encoder_tokens))
+encoder = LSTM(latent_dim, return_state=True)
+encoder_outputs, state_h, state_c = encoder(encoder_inputs)
+encoder_states = [state_h, state_c]
+
+decoder_inputs = Input(shape=(None, num_decoder_tokens))
+decoder_lstm = LSTM(latent_dim, return_sequences=True, return_state=True)
+decoder_outputs, _, _ = decoder_lstm(decoder_inputs,
+                                     initial_state=encoder_states)
+decoder_dense = Dense(num_decoder_tokens, activation='softmax')
+decoder_outputs = decoder_dense(decoder_outputs)
+
+model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
+
+model.compile(optimizer='rmsprop', loss='categorical_crossentropy')
+model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
+          batch_size=batch_size,
+          epochs=epochs,
+          validation_split=0.2)
+model.save('s2s.h5')
+
+
+encoder_model = Model(encoder_inputs, encoder_states)
+
+decoder_state_input_h = Input(shape=(latent_dim,))
+decoder_state_input_c = Input(shape=(latent_dim,))
+decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
+decoder_outputs, state_h, state_c = decoder_lstm(
+    decoder_inputs, initial_state=decoder_states_inputs)
+decoder_states = [state_h, state_c]
+decoder_outputs = decoder_dense(decoder_outputs)
+decoder_model = Model(
+    [decoder_inputs] + decoder_states_inputs,
+    [decoder_outputs] + decoder_states)
+
+reverse_input_char_index = dict(
+    (i, char) for char, i in input_token_index.items())
+reverse_target_char_index = dict(
+    (i, char) for char, i in target_token_index.items())
+
+
+def decode_sequence(input_seq):
+    states_value = encoder_model.predict(input_seq)
+
+    target_seq = np.zeros((1, 1, num_decoder_tokens))
+    target_seq[0, 0, target_token_index['\t']] = 1.
+
+    stop_condition = False
+    decoded_sentence = ''
+    while not stop_condition:
+        output_tokens, h, c = decoder_model.predict(
+            [target_seq] + states_value)
+
+        sampled_token_index = np.argmax(output_tokens[0, -1, :])
+        sampled_char = reverse_target_char_index[sampled_token_index]
+        decoded_sentence += sampled_char
+
+        if (sampled_char == '\n'
+                or len(decoded_sentence) > max_decoder_seq_length):
+            stop_condition = True
+
+        target_seq = np.zeros((1, 1, num_decoder_tokens))
+        target_seq[0, 0, sampled_token_index] = 1.
+
+        states_value = [h, c]
+
+    return decoded_sentence
+
+
+for seq_index in range(100):
+    input_seq = encoder_input_data[seq_index: seq_index + 1]
+    decoded_sentence = decode_sequence(input_seq)
+    print('-')
+    print('Input sentence:', input_texts[seq_index])
+    print('Decoded sentence:', decoded_sentence)
+<eos>
+'''
+
+This script loads the ```s2s.h5``` model saved by [lstm_seq2seq.py
+](/examples/lstm_seq2seq/) and generates sequences from it. It assumes
+that no changes have been made (for example: ```latent_dim``` is unchanged,
+and the input data and model architecture are unchanged).
+
+See [lstm_seq2seq.py](/examples/lstm_seq2seq/) for more details on the
+model architecture and how it is trained.
+'''
+from __future__ import print_function
+
+from keras.models import Model, load_model
+from keras.layers import Input
+import numpy as np
+
+batch_size = 64  # Batch size for training.
+epochs = 100  # Number of epochs to train for.
+latent_dim = 256  # Latent dimensionality of the encoding space.
+num_samples = 10000  # Number of samples to train on.
+data_path = 'fra-eng/fra.txt'
+
+input_texts = []
+target_texts = []
+input_characters = set()
+target_characters = set()
+with open(data_path, 'r', encoding='utf-8') as f:
+    lines = f.read().split('\n')
+for line in lines[: min(num_samples, len(lines) - 1)]:
+    input_text, target_text = line.split('\t')
+    target_text = '\t' + target_text + '\n'
+    input_texts.append(input_text)
+    target_texts.append(target_text)
+    for char in input_text:
+        if char not in input_characters:
+            input_characters.add(char)
+    for char in target_text:
+        if char not in target_characters:
+            target_characters.add(char)
+
+input_characters = sorted(list(input_characters))
+target_characters = sorted(list(target_characters))
+num_encoder_tokens = len(input_characters)
+num_decoder_tokens = len(target_characters)
+max_encoder_seq_length = max([len(txt) for txt in input_texts])
+max_decoder_seq_length = max([len(txt) for txt in target_texts])
+
+print('Number of samples:', len(input_texts))
+print('Number of unique input tokens:', num_encoder_tokens)
+print('Number of unique output tokens:', num_decoder_tokens)
+print('Max sequence length for inputs:', max_encoder_seq_length)
+print('Max sequence length for outputs:', max_decoder_seq_length)
+
+input_token_index = dict(
+    [(char, i) for i, char in enumerate(input_characters)])
+target_token_index = dict(
+    [(char, i) for i, char in enumerate(target_characters)])
+
+encoder_input_data = np.zeros(
+    (len(input_texts), max_encoder_seq_length, num_encoder_tokens),
+    dtype='float32')
+
+for i, input_text in enumerate(input_texts):
+    for t, char in enumerate(input_text):
+        encoder_input_data[i, t, input_token_index[char]] = 1.
+
+model = load_model('s2s.h5')
+
+encoder_inputs = model.input[0]   # input_1
+encoder_outputs, state_h_enc, state_c_enc = model.layers[2].output   # lstm_1
+encoder_states = [state_h_enc, state_c_enc]
+encoder_model = Model(encoder_inputs, encoder_states)
+
+decoder_inputs = model.input[1]   # input_2
+decoder_state_input_h = Input(shape=(latent_dim,), name='input_3')
+decoder_state_input_c = Input(shape=(latent_dim,), name='input_4')
+decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
+decoder_lstm = model.layers[3]
+decoder_outputs, state_h_dec, state_c_dec = decoder_lstm(
+    decoder_inputs, initial_state=decoder_states_inputs)
+decoder_states = [state_h_dec, state_c_dec]
+decoder_dense = model.layers[4]
+decoder_outputs = decoder_dense(decoder_outputs)
+decoder_model = Model(
+    [decoder_inputs] + decoder_states_inputs,
+    [decoder_outputs] + decoder_states)
+
+reverse_input_char_index = dict(
+    (i, char) for char, i in input_token_index.items())
+reverse_target_char_index = dict(
+    (i, char) for char, i in target_token_index.items())
+
+
+def decode_sequence(input_seq):
+    states_value = encoder_model.predict(input_seq)
+
+    target_seq = np.zeros((1, 1, num_decoder_tokens))
+    target_seq[0, 0, target_token_index['\t']] = 1.
+
+    stop_condition = False
+    decoded_sentence = ''
+    while not stop_condition:
+        output_tokens, h, c = decoder_model.predict(
+            [target_seq] + states_value)
+
+        sampled_token_index = np.argmax(output_tokens[0, -1, :])
+        sampled_char = reverse_target_char_index[sampled_token_index]
+        decoded_sentence += sampled_char
+
+        if (sampled_char == '\n'
+                or len(decoded_sentence) > max_decoder_seq_length):
+            stop_condition = True
+
+        target_seq = np.zeros((1, 1, num_decoder_tokens))
+        target_seq[0, 0, sampled_token_index] = 1.
+
+        states_value = [h, c]
+
+    return decoded_sentence
+
+
+for seq_index in range(100):
+    input_seq = encoder_input_data[seq_index: seq_index + 1]
+    decoded_sentence = decode_sequence(input_seq)
+    print('-')
+    print('Input sentence:', input_texts[seq_index])
+    print('Decoded sentence:', decoded_sentence)
+<eos>
+'''
+
+[More documentation about the Keras LSTM model](/layers/recurrent/#lstm)
+
+The models are trained on an input/output pair, where
+the input is a generated uniformly distributed
+random sequence of length = `input_len`,
+and the output is a moving average of the input with window length = `tsteps`.
+Both `input_len` and `tsteps` are defined in the "editable parameters"
+section.
+
+A larger `tsteps` value means that the LSTM will need more memory
+to figure out the input-output relationship.
+This memory length is controlled by the `lahead` variable (more details below).
+
+The rest of the parameters are:
+
+- `input_len`: the length of the generated input sequence
+- `lahead`: the input sequence length that the LSTM
+  is trained on for each output point
+- `batch_size`, `epochs`: same parameters as in the `model.fit(...)`
+  function
+
+When `lahead > 1`, the model input is preprocessed to a "rolling window view"
+of the data, with the window length = `lahead`.
+This is similar to sklearn's `view_as_windows`
+with `window_shape` [being a single number.](
+http://scikit-image.org/docs/0.10.x/api/skimage.util.html#view-as-windows)
+
+When `lahead < tsteps`, only the stateful LSTM converges because its
+statefulness allows it to see beyond the capability that lahead
+gave it to fit the n-point average. The stateless LSTM does not have
+this capability, and hence is limited by its `lahead` parameter,
+which is not sufficient to see the n-point average.
+
+When `lahead >= tsteps`, both the stateful and stateless LSTM converge.
+'''
+from __future__ import print_function
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from keras.models import Sequential
+from keras.layers import Dense, LSTM
+
+
+input_len = 1000
+
+tsteps = 2
+
+lahead = 1
+
+batch_size = 1
+epochs = 10
+
+
+print("*" * 33)
+if lahead >= tsteps:
+    print("STATELESS LSTM WILL ALSO CONVERGE")
+else:
+    print("STATELESS LSTM WILL NOT CONVERGE")
+print("*" * 33)
+
+np.random.seed(1986)
+
+print('Generating Data...')
+
+
+def gen_uniform_amp(amp=1, xn=10000):
+    """Generates uniform random data between
+    -amp and +amp
+    and of length xn
+
+        amp: maximum/minimum range of uniform data
+        xn: length of series
+    """
+    data_input = np.random.uniform(-1 * amp, +1 * amp, xn)
+    data_input = pd.DataFrame(data_input)
+    return data_input
+
+
+to_drop = max(tsteps - 1, lahead - 1)
+data_input = gen_uniform_amp(amp=0.1, xn=input_len + to_drop)
+
+expected_output = data_input.rolling(window=tsteps, center=False).mean()
+
+if lahead > 1:
+    data_input = np.repeat(data_input.values, repeats=lahead, axis=1)
+    data_input = pd.DataFrame(data_input)
+    for i, c in enumerate(data_input.columns):
+        data_input[c] = data_input[c].shift(i)
+
+expected_output = expected_output[to_drop:]
+data_input = data_input[to_drop:]
+
+print('Input shape:', data_input.shape)
+print('Output shape:', expected_output.shape)
+print('Input head: ')
+print(data_input.head())
+print('Output head: ')
+print(expected_output.head())
+print('Input tail: ')
+print(data_input.tail())
+print('Output tail: ')
+print(expected_output.tail())
+
+print('Plotting input and expected output')
+plt.plot(data_input[0][:10], '.')
+plt.plot(expected_output[0][:10], '-')
+plt.legend(['Input', 'Expected output'])
+plt.title('Input')
+plt.show()
+
+
+def create_model(stateful):
+    model = Sequential()
+    model.add(LSTM(20,
+                   input_shape=(lahead, 1),
+                   batch_size=batch_size,
+                   stateful=stateful))
+    model.add(Dense(1))
+    model.compile(loss='mse', optimizer='adam')
+    return model
+
+
+print('Creating Stateful Model...')
+model_stateful = create_model(stateful=True)
+
+
+def split_data(x, y, ratio=0.8):
+    to_train = int(input_len * ratio)
+    to_train -= to_train % batch_size
+
+    x_train = x[:to_train]
+    y_train = y[:to_train]
+    x_test = x[to_train:]
+    y_test = y[to_train:]
+
+    to_drop = x.shape[0] % batch_size
+    if to_drop > 0:
+        x_test = x_test[:-1 * to_drop]
+        y_test = y_test[:-1 * to_drop]
+
+    def reshape_3(x): return x.values.reshape((x.shape[0], x.shape[1], 1))
+    x_train = reshape_3(x_train)
+    x_test = reshape_3(x_test)
+
+    def reshape_2(x): return x.values.reshape((x.shape[0], 1))
+    y_train = reshape_2(y_train)
+    y_test = reshape_2(y_test)
+
+    return (x_train, y_train), (x_test, y_test)
+
+
+(x_train, y_train), (x_test, y_test) = split_data(data_input, expected_output)
+print('x_train.shape: ', x_train.shape)
+print('y_train.shape: ', y_train.shape)
+print('x_test.shape: ', x_test.shape)
+print('y_test.shape: ', y_test.shape)
+
+print('Training')
+for i in range(epochs):
+    print('Epoch', i + 1, '/', epochs)
+    model_stateful.fit(x_train,
+                       y_train,
+                       batch_size=batch_size,
+                       epochs=1,
+                       verbose=1,
+                       validation_data=(x_test, y_test),
+                       shuffle=False)
+    model_stateful.reset_states()
+
+print('Predicting')
+predicted_stateful = model_stateful.predict(x_test, batch_size=batch_size)
+
+print('Creating Stateless Model...')
+model_stateless = create_model(stateful=False)
+
+print('Training')
+model_stateless.fit(x_train,
+                    y_train,
+                    batch_size=batch_size,
+                    epochs=epochs,
+                    verbose=1,
+                    validation_data=(x_test, y_test),
+                    shuffle=False)
+
+print('Predicting')
+predicted_stateless = model_stateless.predict(x_test, batch_size=batch_size)
+
+
+print('Plotting Results')
+plt.subplot(3, 1, 1)
+plt.plot(y_test)
+plt.title('Expected')
+plt.subplot(3, 1, 2)
+plt.plot((y_test - predicted_stateful).flatten()[tsteps - 1:])
+plt.title('Stateful: Expected - Predicted')
+plt.subplot(3, 1, 3)
+plt.plot((y_test - predicted_stateless).flatten())
+plt.title('Stateless: Expected - Predicted')
+plt.show()
 <eos>

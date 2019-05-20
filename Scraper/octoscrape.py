@@ -1,3 +1,4 @@
+import re
 import base64
 import os
 import autopep8
@@ -22,6 +23,7 @@ class Octoscrape:
             contents = repo.get_contents("")
 
             f = open("data/python.txt", "a+")
+            f.write('<s>\n')
             while len(contents) > 1:
                 file_content = contents.pop(0)
 
@@ -34,13 +36,15 @@ class Octoscrape:
                         decoded_content = self._clean_code(decoded_content)
                         print("Code size: ", len(decoded_content))
                         decoded_content += "<eos>\n"
-                        f.write(decoded_content)
+                        if len(decoded_content) > 300:
+                            f.write(decoded_content)
             f.close()
         except:
             time.sleep(1)
             pass
 
     def _clean_code(self, code):
+        code = re.sub(r'(?m)^ *#.*\n?', '', code)
         return autopep8.fix_code(code, options={'ignore': ['E501'], 'aggressive': 2})
 
     def next_page(self):
