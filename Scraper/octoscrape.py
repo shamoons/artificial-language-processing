@@ -15,7 +15,7 @@ class Octoscrape:
 
     def search_repos(self):
         return self.g.search_repositories(
-            query='keras stars:>=500 fork:true language:python').get_page(self.page)
+            query='keras stars:>=1000 fork:true language:python').get_page(self.page)
 
     def get_contents(self, repo, file_extension):
         try:
@@ -32,7 +32,8 @@ class Octoscrape:
                         decoded_content = base64.b64decode(
                             file_content.content).decode('utf-8')
                         decoded_content = self._clean_code(decoded_content)
-                        print(decoded_content)
+                        print("Code size: ", len(decoded_content))
+                        decoded_content += "<eos>\n"
                         f.write(decoded_content)
             f.close()
         except:
@@ -40,7 +41,7 @@ class Octoscrape:
             pass
 
     def _clean_code(self, code):
-        return autopep8.fix_code(code)
+        return autopep8.fix_code(code, options={'ignore': ['E501'], 'aggressive': 2})
 
     def next_page(self):
         self.page += 1
