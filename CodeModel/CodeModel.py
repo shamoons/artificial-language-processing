@@ -64,14 +64,28 @@ class CodeModel:
 
         self.source_code = []
         self.next_tokens = []
-        i = 0
-        next_token = ''
-        while next_token != '<eos>':
-            codeline = text_in_words[i: i + self.SEQ_LENGTH]
-            next_token = text_in_words[i + self.SEQ_LENGTH]
-            i += 1
-            self.source_code.append(codeline)
-            self.next_tokens.append(next_token)
+
+        # print(text_in_words)
+        # # print(self._tokens)
+        # quit()
+        sections = filecontents.split('<s>')
+        for section in sections:
+            section_tokens = self._tokenize(section)
+            section_text_in_words = [
+                token for token in section_tokens if token != '']
+
+            if len(section_text_in_words) < self.SEQ_LENGTH:
+                continue
+
+            i = 0
+            next_token = ''
+
+            while next_token != '<eos>':
+                codeline = section_text_in_words[i: i + self.SEQ_LENGTH]
+                next_token = section_text_in_words[i + self.SEQ_LENGTH]
+                i += 1
+                self.source_code.append(codeline)
+                self.next_tokens.append(next_token)
 
     def _sanitize(self, filecontents):
         filecontents = filecontents.replace("\n\n", "\n")

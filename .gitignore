@@ -3,3 +3,4 @@
 data/python.txt
 __pycache__/
 models/
+*.pyc

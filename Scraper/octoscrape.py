@@ -21,9 +21,9 @@ class Octoscrape:
     def get_contents(self, repo, file_extension):
         try:
             contents = repo.get_contents("")
+            written_file_content = '<s>\n'
 
-            f = open("data/python.txt", "a+")
-            f.write('<s>\n')
+            f = open("data/python.txt", "a")
             while len(contents) > 1:
                 file_content = contents.pop(0)
 
@@ -35,9 +35,10 @@ class Octoscrape:
                             file_content.content).decode('utf-8')
                         decoded_content = self._clean_code(decoded_content)
                         print("Code size: ", len(decoded_content))
-                        decoded_content += "<eos>\n"
-                        if len(decoded_content) > 300:
-                            f.write(decoded_content)
+                        written_file_content += decoded_content
+                        written_file_content += "<eos>\n"
+                        if len(written_file_content) > 300:
+                            f.write(written_file_content)
             f.close()
         except:
             time.sleep(1)
