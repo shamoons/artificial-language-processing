@@ -19,9 +19,9 @@ class CodeModel:
 
     def _setup_callbacks(self):
         model_checkpoint = ModelCheckpoint(
-            'models/python.hdf5', monitor='val_acc', save_best_only=True, save_weights_only=True)
-        earlystopping_callback = EarlyStopping(
-            monitor='val_acc', patience=10)
+            'models/python.hdf5', verbose=1, monitor='val_acc', save_best_only=True, save_weights_only=True)
+        earlystopping_callback = EarlyStopping(verbose=1,
+                                               monitor='val_acc', patience=10)
         return [model_checkpoint, earlystopping_callback]
 
     def _build_model(self, weights=None):
@@ -131,6 +131,7 @@ class CodeModel:
             preds = self._model.predict(x_pred, verbose=0)[0]
             next_index = np.argmax(preds)
             next_word = self._indices_word[next_index]
+
             print(next_index, next_word)
             print(preds, '===')
         # in_text, result = seed_text, seed_text
