@@ -6,6 +6,7 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers import Embedding, LSTM, Dropout, Dense, Activation
 from keras.utils import to_categorical
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 
 
 class CodeModel:
@@ -16,7 +17,15 @@ class CodeModel:
         self._load_corpus()
         self._build_model()
 
+    def _setup_callbacks(self):
+        model_checkpoint = ModelCheckpoint(
+            'models/python.hdf5', monitor='val_acc', save_best_only=True, save_weights_only=True)
+        earlystopping_callback = EarlyStopping(
+            monitor='val_acc', patience=10)
+        return [model_checkpoint, earlystopping_callback]
+
     def _build_model(self, weights=None):
+        callbacks = self._setup_callbacks()
         vocab_size = len(self._tokens) + 1
         model = Sequential()
         model.add(Embedding(input_dim=vocab_size,
@@ -25,7 +34,7 @@ class CodeModel:
         model.add(LSTM(vocab_size))
 
         model.add(Dropout(rate=0.5))
-        model.add(Dense(vocab_size, activation='softmax'))
+        model.add(Dense(vocab_size - 1, activation='softmax'))
         print(model.summary())
 
         if weights != None:
@@ -34,7 +43,7 @@ class CodeModel:
             if exists:
                 model.load_weights(weights, by_name=True)
 
-        model.compile(loss='sparse_categorical_crossentropy',
+        model.compile(loss='categorical_crossentropy',
                       optimizer="adam", metrics=['accuracy'])
 
         self._model = model
