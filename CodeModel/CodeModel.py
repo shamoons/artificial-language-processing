@@ -13,7 +13,7 @@ class CodeModel:
     def __init__(self, corpus, seq_length=100):
         self._corpus = corpus
         self.SEQ_LENGTH = seq_length
-        self.BATCH_SIZE = 10
+        self.BATCH_SIZE = 5
         self._load_corpus()
         self._build_model()
 
