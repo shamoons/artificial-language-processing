@@ -12,6 +12,9 @@ pygithub = "*"
 autopep8 = "*"
 textgenrnn = "*"
 tensorflow = "*"
+keras = "*"
+sklearn = "*"
+numpy = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.6"

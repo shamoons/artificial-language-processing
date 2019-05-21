@@ -1,3 +1,4 @@
+import re
 import base64
 import os
 import autopep8
@@ -15,13 +16,14 @@ class Octoscrape:
 
     def search_repos(self):
         return self.g.search_repositories(
-            query='keras stars:>=500 fork:true language:python').get_page(self.page)
+            query='keras stars:>=1000 fork:true language:python').get_page(self.page)
 
     def get_contents(self, repo, file_extension):
         try:
             contents = repo.get_contents("")
+            written_file_content = '<s>\n'
 
-            f = open("data/python.txt", "a+")
+            f = open("data/python.txt", "a")
             while len(contents) > 1:
                 file_content = contents.pop(0)
 
@@ -32,15 +34,19 @@ class Octoscrape:
                         decoded_content = base64.b64decode(
                             file_content.content).decode('utf-8')
                         decoded_content = self._clean_code(decoded_content)
-                        print(decoded_content)
-                        f.write(decoded_content)
+                        print("Code size: ", len(decoded_content))
+                        written_file_content += decoded_content
+                        written_file_content += "<eos>\n"
+                        if len(written_file_content) > 300:
+                            f.write(written_file_content)
             f.close()
         except:
             time.sleep(1)
             pass
 
     def _clean_code(self, code):
-        return autopep8.fix_code(code)
+        code = re.sub(r'(?m)^ *#.*\n?', '', code)
+        return autopep8.fix_code(code, options={'ignore': ['E501'], 'aggressive': 2})
 
     def next_page(self):
         self.page += 1
