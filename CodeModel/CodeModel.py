@@ -30,7 +30,7 @@ class CodeModel:
         model.add(Embedding(input_dim=vocab_size,
                             output_dim=1024, input_length=self.SEQ_LENGTH))
 
-        model.add(LSTM(vocab_size))
+        model.add(LSTM(128))
 
         model.add(Dropout(rate=0.5))
         model.add(Dense(vocab_size - 1, activation='softmax'))
@@ -65,9 +65,6 @@ class CodeModel:
         self.source_code = []
         self.next_tokens = []
 
-        # print(text_in_words)
-        # # print(self._tokens)
-        # quit()
         sections = filecontents.split('<s>')
         for section in sections:
             section_tokens = self._tokenize(section)
