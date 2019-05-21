@@ -2,26 +2,31 @@ import os
 import re
 import tokenize
 import io
+import numpy as np
 from keras.models import Sequential
 from keras.layers import Embedding, LSTM, Dropout, Dense, Activation
+from keras.utils import to_categorical
 
 
 class CodeModel:
     def __init__(self, corpus, seq_length=100):
         self._corpus = corpus
         self.SEQ_LENGTH = seq_length
+        self.BATCH_SIZE = 10
         self._load_corpus()
         self._build_model()
 
     def _build_model(self, weights=None):
+        vocab_size = len(self._tokens) + 1
         model = Sequential()
-        model.add(Embedding(input_dim=len(self._tokens), output_dim=1024))
+        model.add(Embedding(input_dim=vocab_size,
+                            output_dim=1024, input_length=self.SEQ_LENGTH))
 
-        model.add(LSTM(128))
+        model.add(LSTM(vocab_size))
 
         model.add(Dropout(rate=0.5))
-        model.add(Dense(len(self._tokens)))
-        model.add(Activation('softmax'))
+        model.add(Dense(vocab_size, activation='softmax'))
+        print(model.summary())
 
         if weights != None:
             exists = os.path.isfile(weights)
@@ -70,6 +75,34 @@ class CodeModel:
         tokens = filecontents.split(' ')
         return tokens
 
+    def _encode(self, x, y):
+        sequences = np.array(x)
+        next_tokens = np.array(y)
+
+        encoded_sequences = []
+        encoded_outputs = []
+        for seq in sequences:
+            encoded_sequence = []
+            for token in seq:
+                encoded_sequence.append(self._word_indices[token])
+            categorial_sequence = to_categorical(
+                encoded_sequence, num_classes=len(self._tokens))
+            encoded_sequences.append(encoded_sequence)
+
+        for next_token in next_tokens:
+            encoded_outputs.append(self._word_indices[next_token])
+        categorial_output = to_categorical(
+            encoded_outputs, num_classes=len(self._tokens))
+
+        return np.array(encoded_sequences), np.array(categorial_output)
+
     def train(self):
-        self._model.fit(self.source_code, self.next_tokens, epochs=500,
-                        verbose=2, batch_size=10, shuffle=True, validation_split=0.1)
+        source_code, next_tokens = self._encode(
+            self.source_code, self.next_tokens)
+        # print(source_code)
+        print(source_code.shape)
+        print(next_tokens.shape)
+        # quit()
+
+        self._model.fit(source_code, next_tokens, epochs=500,
+                        verbose=2, batch_size=self.BATCH_SIZE, shuffle=True, validation_split=0.1)
