@@ -127,20 +127,28 @@ class CodeModel:
                         verbose=2, batch_size=self.BATCH_SIZE, shuffle=True, validation_split=0.1)
 
     def generate(self):
-        in_text, result = seed_text, seed_text
-        # generate a fixed number of words
-        for _ in range(n_words):
-                # encode the text as integer
-            encoded = tokenizer.texts_to_sequences([in_text])[0]
-            encoded = array(encoded)
-            # predict a word in the vocabulary
-            yhat = model.predict_classes(encoded, verbose=0)
-            # map predicted word index to word
-            out_word = ''
-            for word, index in tokenizer.word_index.items():
-                if index == yhat:
-                    out_word = word
-                    break
-            # append to input
-            in_text, result = out_word, result + ' ' + out_word
-        return result
+        next_word = "<s>"
+        while next_word != "<eos>":
+            x_pred = np.zeros((1, self.SEQ_LENGTH))
+            preds = self._model.predict(x_pred, verbose=0)[0]
+            next_index = np.argmax(preds)
+            next_word = self._indices_word[next_index]
+            print(next_index, next_word)
+            print(preds, '===')
+        # in_text, result = seed_text, seed_text
+        # # generate a fixed number of words
+        # for _ in range(n_words):
+        #         # encode the text as integer
+        #     encoded = tokenizer.texts_to_sequences([in_text])[0]
+        #     encoded = array(encoded)
+        #     # predict a word in the vocabulary
+        #     yhat = model.predict_classes(encoded, verbose=0)
+        #     # map predicted word index to word
+        #     out_word = ''
+        #     for word, index in tokenizer.word_index.items():
+        #         if index == yhat:
+        #             out_word = word
+        #             break
+        #     # append to input
+        #     in_text, result = out_word, result + ' ' + out_word
+        # return result

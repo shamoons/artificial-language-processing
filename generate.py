@@ -1,7 +1,7 @@
-from Trainer import trainer
+from CodeModel import CodeModel
 
 
-t = trainer.Trainer('data/small.txt', weights='model/python.hdf5')
-t.generate()
+codemodel = CodeModel(corpus='data/small.txt')
+codemodel.generate()
 
 # print(t.filecontents[:200])
