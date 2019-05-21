@@ -122,10 +122,25 @@ class CodeModel:
         callbacks = self._setup_callbacks()
         source_code, next_tokens = self._encode(
             self.source_code, self.next_tokens)
-        # print(source_code)
-        print(source_code.shape)
-        print(next_tokens.shape)
-        # quit()
 
         self._model.fit(source_code, next_tokens, epochs=500, callbacks=callbacks,
                         verbose=2, batch_size=self.BATCH_SIZE, shuffle=True, validation_split=0.1)
+
+    def generate(self):
+        in_text, result = seed_text, seed_text
+        # generate a fixed number of words
+        for _ in range(n_words):
+                # encode the text as integer
+            encoded = tokenizer.texts_to_sequences([in_text])[0]
+            encoded = array(encoded)
+            # predict a word in the vocabulary
+            yhat = model.predict_classes(encoded, verbose=0)
+            # map predicted word index to word
+            out_word = ''
+            for word, index in tokenizer.word_index.items():
+                if index == yhat:
+                    out_word = word
+                    break
+            # append to input
+            in_text, result = out_word, result + ' ' + out_word
+        return result
