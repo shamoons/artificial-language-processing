@@ -25,7 +25,6 @@ class CodeModel:
         return [model_checkpoint, earlystopping_callback]
 
     def _build_model(self, weights=None):
-        callbacks = self._setup_callbacks()
         vocab_size = len(self._tokens) + 1
         model = Sequential()
         model.add(Embedding(input_dim=vocab_size,
@@ -106,6 +105,7 @@ class CodeModel:
         return np.array(encoded_sequences), np.array(categorial_output)
 
     def train(self):
+        callbacks = self._setup_callbacks()
         source_code, next_tokens = self._encode(
             self.source_code, self.next_tokens)
         # print(source_code)
@@ -113,5 +113,5 @@ class CodeModel:
         print(next_tokens.shape)
         # quit()
 
-        self._model.fit(source_code, next_tokens, epochs=500,
+        self._model.fit(source_code, next_tokens, epochs=500, callbacks=callbacks,
                         verbose=2, batch_size=self.BATCH_SIZE, shuffle=True, validation_split=0.1)

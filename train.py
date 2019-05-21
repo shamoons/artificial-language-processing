@@ -1,4 +1,7 @@
 from CodeModel import CodeModel
+from tensorflow.python.client import device_lib
+
+print(device_lib.list_local_devices())
 
 codemodel = CodeModel(corpus='data/small.txt')
 codemodel.train()
