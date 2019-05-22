@@ -58,9 +58,8 @@ class CodeModel:
         text_in_words = [token for token in tokens if token != '']
 
         self._tokens = set(text_in_words)
-        [print(token) for token in self._tokens]
+        # [print(token) for token in self._tokens]
         print('Vocabulary Size: ', len(self._tokens))
-        quit()
 
         self._word_indices = dict((c, i) for i, c in enumerate(self._tokens))
         self._indices_word = dict((i, c) for i, c in enumerate(self._tokens))
