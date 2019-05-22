@@ -135,8 +135,24 @@ class CodeModel:
                         verbose=2, batch_size=self.BATCH_SIZE, shuffle=True, validation_split=0.1)
 
     def generate(self):
-        next_word = "<s>"
-        x_pred = np.zeros((1, self.SEQ_LENGTH))
+        seed = 'import numpy as np\n'
+        seed = self._sanitize(seed)
+
+        seed_tokens = self._tokenize(seed)
+        seed_tokens = np.delete(seed_tokens, -1)
+        encoded_tokens = []
+
+        for seed_token in seed_tokens:
+            encoded_tokens.append(self._word_indices[seed_token])
+        x_pred = np.array([encoded_tokens])
+        # seed_tokens = np.array([seed_tokens])
+        print("Seed: ", seed_tokens)
+        # print(encoded_tokens)
+        # print(encoded_tokens.shape)
+        # quit()
+
+        next_word = ""
+        # x_pred = np.zeros((1, self.SEQ_LENGTH))
         generated_code = ''
         token_count = 0
         while next_word != "<eos>" and token_count < 1000:
