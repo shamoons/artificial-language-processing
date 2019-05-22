@@ -88,6 +88,16 @@ class CodeModel:
     def _sanitize(self, filecontents):
         filecontents = filecontents.replace("\n\n", "\n")
         filecontents = filecontents.replace('\n', ' \n ')
+        filecontents = filecontents.replace(', ', ' , ')
+        filecontents = filecontents.replace('(', '( ')
+        filecontents = filecontents.replace(')', ' )')
+        filecontents = filecontents.replace('[', '[ ')
+        filecontents = filecontents.replace(']', ' ]')
+        filecontents = filecontents.replace(': ', ' : ')
+        filecontents = filecontents.replace(': ', ' : ')
+        filecontents = filecontents.replace("'", " ' ")
+        filecontents = re.sub(
+            r'(?<![=!<>+-\/\*])(\=)(?![=!<>+-\/\*])', ' = ', filecontents)
 
         return filecontents
 
@@ -126,14 +136,26 @@ class CodeModel:
 
     def generate(self):
         next_word = "<s>"
-        while next_word != "<eos>":
-            x_pred = np.zeros((1, self.SEQ_LENGTH))
+        x_pred = np.zeros((1, self.SEQ_LENGTH))
+        generated_code = ''
+        token_count = 0
+        while next_word != "<eos>" and token_count < 100:
+
+            print(x_pred)
+
             preds = self._model.predict(x_pred, verbose=0)[0]
             next_index = np.argmax(preds)
             next_word = self._indices_word[next_index]
 
+            generated_code = generated_code + ' ' + next_word
+
             print(next_index, next_word)
-            print(preds, '===')
+            # print(preds, '===\n')
+
+            x_pred = np.append(x_pred[:, 1:], [[next_index]], axis=1)
+            token_count += 1
+        print(generated_code)
+
         # in_text, result = seed_text, seed_text
         # # generate a fixed number of words
         # for _ in range(n_words):
