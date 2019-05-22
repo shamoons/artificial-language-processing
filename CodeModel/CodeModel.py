@@ -19,7 +19,7 @@ class CodeModel:
 
     def _setup_callbacks(self):
         model_checkpoint = ModelCheckpoint(
-            'models/python.hdf5', verbose=1, monitor='val_acc', save_best_only=True, save_weights_only=True)
+            'models/python.hdf5', verbose=1, monitor='val_acc', save_weights_only=True)
         earlystopping_callback = EarlyStopping(verbose=1,
                                                monitor='val_acc', patience=10)
         return [model_checkpoint, earlystopping_callback]
