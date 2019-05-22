@@ -3,5 +3,5 @@ from CodeModel import CodeModel
 
 print(device_lib.list_local_devices())
 
-codemodel = CodeModel(corpus='data/python.txt', seq_length=25)
+codemodel = CodeModel(corpus='data/python.txt', seq_length=50)
 codemodel.train()

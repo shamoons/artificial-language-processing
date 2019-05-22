@@ -10,12 +10,12 @@ from keras.callbacks import ModelCheckpoint, EarlyStopping
 
 
 class CodeModel:
-    def __init__(self, corpus, seq_length=100):
+    def __init__(self, corpus, seq_length=100, weights=None):
         self._corpus = corpus
         self.SEQ_LENGTH = seq_length
         self.BATCH_SIZE = 5
         self._load_corpus()
-        self._build_model()
+        self._build_model(weights=weights)
 
     def _setup_callbacks(self):
         model_checkpoint = ModelCheckpoint(
@@ -40,6 +40,7 @@ class CodeModel:
             exists = os.path.isfile(weights)
 
             if exists:
+                print('Loading weights: ', weights)
                 model.load_weights(weights, by_name=True)
 
         model.compile(loss='categorical_crossentropy',
@@ -135,6 +136,7 @@ class CodeModel:
                         verbose=2, batch_size=self.BATCH_SIZE, shuffle=True, validation_split=0.1)
 
     def generate(self):
+        x_pred = np.zeros((1, self.SEQ_LENGTH))
         seed = 'import numpy as np\n'
         seed = self._sanitize(seed)
 
@@ -143,8 +145,10 @@ class CodeModel:
         encoded_tokens = []
 
         for seed_token in seed_tokens:
-            encoded_tokens.append(self._word_indices[seed_token])
-        x_pred = np.array([encoded_tokens])
+            next_index = self._word_indices[seed_token]
+            x_pred = np.append(x_pred[:, 1:], [[next_index]], axis=1)
+
+        # x_pred = np.array([encoded_tokens])
         # seed_tokens = np.array([seed_tokens])
         print("Seed: ", seed_tokens)
         # print(encoded_tokens)
@@ -152,7 +156,7 @@ class CodeModel:
         # quit()
 
         next_word = ""
-        # x_pred = np.zeros((1, self.SEQ_LENGTH))
+
         generated_code = ''
         token_count = 0
         while next_word != "<eos>" and token_count < 1000:
