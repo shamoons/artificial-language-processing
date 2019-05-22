@@ -58,7 +58,9 @@ class CodeModel:
         text_in_words = [token for token in tokens if token != '']
 
         self._tokens = set(text_in_words)
+        [print(token) for token in self._tokens]
         print('Vocabulary Size: ', len(self._tokens))
+        quit()
 
         self._word_indices = dict((c, i) for i, c in enumerate(self._tokens))
         self._indices_word = dict((i, c) for i, c in enumerate(self._tokens))
@@ -93,7 +95,6 @@ class CodeModel:
         filecontents = filecontents.replace(')', ' )')
         filecontents = filecontents.replace('[', '[ ')
         filecontents = filecontents.replace(']', ' ]')
-        filecontents = filecontents.replace(': ', ' : ')
         filecontents = filecontents.replace(': ', ' : ')
         filecontents = filecontents.replace("'", " ' ")
         filecontents = re.sub(
@@ -139,9 +140,7 @@ class CodeModel:
         x_pred = np.zeros((1, self.SEQ_LENGTH))
         generated_code = ''
         token_count = 0
-        while next_word != "<eos>" and token_count < 100:
-
-            print(x_pred)
+        while next_word != "<eos>" and token_count < 1000:
 
             preds = self._model.predict(x_pred, verbose=0)[0]
             next_index = np.argmax(preds)
@@ -149,27 +148,6 @@ class CodeModel:
 
             generated_code = generated_code + ' ' + next_word
 
-            print(next_index, next_word)
-            # print(preds, '===\n')
-
             x_pred = np.append(x_pred[:, 1:], [[next_index]], axis=1)
             token_count += 1
         print(generated_code)
-
-        # in_text, result = seed_text, seed_text
-        # # generate a fixed number of words
-        # for _ in range(n_words):
-        #         # encode the text as integer
-        #     encoded = tokenizer.texts_to_sequences([in_text])[0]
-        #     encoded = array(encoded)
-        #     # predict a word in the vocabulary
-        #     yhat = model.predict_classes(encoded, verbose=0)
-        #     # map predicted word index to word
-        #     out_word = ''
-        #     for word, index in tokenizer.word_index.items():
-        #         if index == yhat:
-        #             out_word = word
-        #             break
-        #     # append to input
-        #     in_text, result = out_word, result + ' ' + out_word
-        # return result
