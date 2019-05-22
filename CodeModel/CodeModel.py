@@ -28,11 +28,11 @@ class CodeModel:
         vocab_size = len(self._tokens) + 1
         model = Sequential()
         model.add(Embedding(input_dim=vocab_size,
-                            output_dim=1024, input_length=self.SEQ_LENGTH))
+                            output_dim=256, input_length=self.SEQ_LENGTH))
 
-        model.add(LSTM(128))
+        model.add(LSTM(512))
 
-        model.add(Dropout(rate=0.5))
+        # model.add(Dropout(rate=0.5))
         model.add(Dense(vocab_size - 1, activation='softmax'))
         print(model.summary())
 
