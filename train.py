@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser(description='Train a model on a corpus.')
 parser.add_argument('--corpus', dest='corpus', default='data/python.txt',
                     help='Filename for the corpus')
 
-parser.add_argument('--seq_length', dest='seq_length', default=60,
+parser.add_argument('--seq_length', dest='seq_length', default=100,
                     help='Start Index')
 
 

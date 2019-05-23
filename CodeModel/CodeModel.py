@@ -12,10 +12,10 @@ from sklearn.model_selection import train_test_split
 
 
 class CodeModel:
-    def __init__(self, corpus, seq_length=100, weights=None):
+    def __init__(self, corpus, seq_length=100, weights=None, batch_size=8):
         self._corpus = corpus
         self.SEQ_LENGTH = seq_length
-        self.BATCH_SIZE = 64
+        self.BATCH_SIZE = batch_size
         self._load_corpus()
         self._build_model(weights=weights)
 
