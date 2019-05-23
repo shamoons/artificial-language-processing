@@ -22,7 +22,7 @@ class CodeModel:
             'models/python.hdf5', verbose=1, monitor='val_acc', save_weights_only=True)
         earlystopping_callback = EarlyStopping(verbose=1,
                                                monitor='val_acc', patience=50)
-        return [model_checkpoint, earlystopping_callback]
+        return [model_checkpoint]
 
     def _build_model(self, weights=None):
         vocab_size = len(self._tokens) + 1
@@ -61,7 +61,7 @@ class CodeModel:
 
         self._tokens = set(text_in_words)
         # [print(token) for token in self._tokens]
-        print(self._tokens)
+        # print(self._tokens)
         print('Vocabulary Size: ', len(self._tokens))
 
         self._word_indices = dict((c, i) for i, c in enumerate(self._tokens))
