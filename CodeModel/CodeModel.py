@@ -158,7 +158,7 @@ class CodeModel:
         # quit()
 
         self._model.fit(x_train, y_train, epochs=500, callbacks=callbacks,
-                        verbose=1, batch_size=self.BATCH_SIZE, shuffle=True, validation_data=(x_valid, y_valid))
+                        verbose=2, batch_size=self.BATCH_SIZE, shuffle=True, validation_data=(x_valid, y_valid))
 
     def generate(self):
         blank_index = self._word_indices['']
