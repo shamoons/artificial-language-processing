@@ -27,3 +27,11 @@ Seems to get stuck with `loss: 14.3951 - acc: 0.1069 - val_loss: 14.3999 - val_a
 * No Dropout
 
 #### Result
+After 12 epocks, gets stuck at `266s - loss: 9.8586 - acc: 0.3884 - val_loss: 9.7036 - val_acc: 0.3980`
+
+### Experiment 3
+* lr=0.05
+* BATCH_SIZE=64
+* SEQ_LENGTH=60
+* No Dropout
+* Switching from `categorical_cross_entropy` to `sparse_categorical_crossentropy` loss function

@@ -15,7 +15,7 @@ class CodeModel:
     def __init__(self, corpus, seq_length=100, weights=None):
         self._corpus = corpus
         self.SEQ_LENGTH = seq_length
-        self.BATCH_SIZE = 16
+        self.BATCH_SIZE = 64
         self._load_corpus()
         self._build_model(weights=weights)
 
@@ -47,7 +47,7 @@ class CodeModel:
 
         adam_optimizer = Adam(lr=0.05)
 
-        model.compile(loss='categorical_crossentropy',
+        model.compile(loss='sparse_categorical_crossentropy',
                       optimizer=adam_optimizer, metrics=['accuracy'])
 
         self._model = model
@@ -121,16 +121,16 @@ class CodeModel:
             encoded_sequence = []
             for token in seq:
                 encoded_sequence.append(self._word_indices[token])
-            categorial_sequence = to_categorical(
-                encoded_sequence, num_classes=len(self._tokens))
+            # categorial_sequence = to_categorical(
+            #     encoded_sequence, num_classes=len(self._tokens))
             encoded_sequences.append(encoded_sequence)
 
         for next_token in next_tokens:
             encoded_outputs.append(self._word_indices[next_token])
-        categorial_output = to_categorical(
-            encoded_outputs, num_classes=len(self._tokens))
+        # categorial_output = to_categorical(
+        #     encoded_outputs, num_classes=len(self._tokens))
 
-        return np.array(encoded_sequences), np.array(categorial_output)
+        return np.array(encoded_sequences), np.array(encoded_outputs)
 
     def train(self):
         callbacks = self._setup_callbacks()
@@ -139,20 +139,35 @@ class CodeModel:
 
         x_train, x_valid, y_train, y_valid = train_test_split(
             source_code, next_tokens, test_size=0.1, shuffle=True)
+        # x_train = np.random.choice(x_train, (1, self.SEQ_LENGTH))
+        # np.random.shuffle(y_train)
+        # random_index = np.random.randint(0, x_train.shape[0])
+        # x_train = np.array([x_train[random_index]])
+        # y_train = np.array([y_train[random_index]])
+
+        # random_index = np.random.randint(0, x_valid.shape[0])
+
+        # x_valid = np.array([x_valid[random_index]])
+        # y_valid = np.array([y_valid[random_index]])
+
+        # print(x_train)
+        # print(x_train.shape)
+
+        # print(y_train)
+        # print(y_train.shape)
+        # quit()
 
         self._model.fit(x_train, y_train, epochs=500, callbacks=callbacks,
-                        verbose=2, batch_size=self.BATCH_SIZE, shuffle=True, validation_data=(x_valid, y_valid))
+                        verbose=1, batch_size=self.BATCH_SIZE, shuffle=True, validation_data=(x_valid, y_valid))
 
     def generate(self):
-        x_pred = np.zeros((1, self.SEQ_LENGTH))
         blank_index = self._word_indices['']
-        print(blank_index)
-        quit()
-        seed = 'import numpy as np\n'
-        seed = self._sanitize(seed)
+        x_pred = np.full((1, self.SEQ_LENGTH), blank_index)
+
+        generated_code = 'import numpy as np\n'
+        seed = self._sanitize(generated_code)
 
         seed_tokens = self._tokenize(seed)
-        seed_tokens = np.delete(seed_tokens, -1)
         encoded_tokens = []
 
         for seed_token in seed_tokens:
@@ -163,15 +178,13 @@ class CodeModel:
 
         next_word = ""
 
-        generated_code = ''
         token_count = 0
         while next_word != "<eos>" and token_count < 1000:
-
             preds = self._model.predict(x_pred, verbose=0)[0]
             next_index = np.argmax(preds)
             next_word = self._indices_word[next_index]
 
-            generated_code = generated_code + ' ' + next_word
+            generated_code += ' ' + next_word
 
             x_pred = np.append(x_pred[:, 1:], [[next_index]], axis=1)
             token_count += 1
