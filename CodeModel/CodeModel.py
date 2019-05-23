@@ -6,6 +6,7 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers import Embedding, LSTM, Dropout, Dense, Activation
 from keras.utils import to_categorical
+from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from sklearn.model_selection import train_test_split
 
@@ -44,8 +45,10 @@ class CodeModel:
                 print('Loading weights: ', weights)
                 model.load_weights(weights, by_name=True)
 
+        adam_optimizer = Adam(lr=0.01)
+
         model.compile(loss='categorical_crossentropy',
-                      optimizer="adam", metrics=['accuracy'])
+                      optimizer=adam_optimizer, metrics=['accuracy'])
 
         self._model = model
 
