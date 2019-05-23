@@ -9,4 +9,21 @@ I could not find any dataset of source code, so I scraped it myself. The [scrape
 
 A super big shoutout to [Max Woolf](http://minimaxir.com/) for creating the [textgenrnn](https://github.com/minimaxir/textgenrnn) package. It made my life considerably easier and I highly recommend it for quick and dirty projects.
 
-## Samples
+## Experiment Log
+
+### Experiment 1
+* lr=0.1
+* BATCH_SIZE=32
+* SEQ_LENGTH=60
+* No Dropout
+
+#### Result
+Seems to get stuck with `loss: 14.3951 - acc: 0.1069 - val_loss: 14.3999 - val_acc: 0.1066`
+
+### Experiment 2
+* lr=0.05
+* BATCH_SIZE=16
+* SEQ_LENGTH=60
+* No Dropout
+
+#### Result

@@ -15,7 +15,7 @@ class CodeModel:
     def __init__(self, corpus, seq_length=100, weights=None):
         self._corpus = corpus
         self.SEQ_LENGTH = seq_length
-        self.BATCH_SIZE = 32
+        self.BATCH_SIZE = 16
         self._load_corpus()
         self._build_model(weights=weights)
 
@@ -45,7 +45,7 @@ class CodeModel:
                 print('Loading weights: ', weights)
                 model.load_weights(weights, by_name=True)
 
-        adam_optimizer = Adam(lr=0.1)
+        adam_optimizer = Adam(lr=0.05)
 
         model.compile(loss='categorical_crossentropy',
                       optimizer=adam_optimizer, metrics=['accuracy'])
