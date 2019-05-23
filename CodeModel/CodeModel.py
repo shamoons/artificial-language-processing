@@ -45,7 +45,7 @@ class CodeModel:
                 print('Loading weights: ', weights)
                 model.load_weights(weights, by_name=True)
 
-        adam_optimizer = Adam(lr=0.01)
+        adam_optimizer = Adam(lr=0.1)
 
         model.compile(loss='categorical_crossentropy',
                       optimizer=adam_optimizer, metrics=['accuracy'])
