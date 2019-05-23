@@ -28,7 +28,7 @@ class CodeModel:
         vocab_size = len(self._tokens) + 1
         model = Sequential()
         model.add(Embedding(input_dim=vocab_size,
-                            output_dim=256, input_length=self.SEQ_LENGTH))
+                            output_dim=64, input_length=self.SEQ_LENGTH))
 
         model.add(LSTM(512))
 
@@ -59,9 +59,9 @@ class CodeModel:
         text_in_words = [token for token in tokens if token != '']
         text_in_words.append('')
 
+        print('text_in_words', len(text_in_words))
         self._tokens = set(text_in_words)
         # [print(token) for token in self._tokens]
-        # print(self._tokens)
         print('Vocabulary Size: ', len(self._tokens))
 
         self._word_indices = dict((c, i) for i, c in enumerate(self._tokens))
@@ -139,6 +139,9 @@ class CodeModel:
 
     def generate(self):
         x_pred = np.zeros((1, self.SEQ_LENGTH))
+        blank_index = self._word_indices['']
+        print(blank_index)
+        quit()
         seed = 'import numpy as np\n'
         seed = self._sanitize(seed)
 
@@ -150,12 +153,7 @@ class CodeModel:
             next_index = self._word_indices[seed_token]
             x_pred = np.append(x_pred[:, 1:], [[next_index]], axis=1)
 
-        # x_pred = np.array([encoded_tokens])
-        # seed_tokens = np.array([seed_tokens])
         print("Seed: ", seed_tokens)
-        # print(encoded_tokens)
-        # print(encoded_tokens.shape)
-        # quit()
 
         next_word = ""
 
