@@ -57,9 +57,11 @@ class CodeModel:
 
         tokens = self._tokenize(filecontents)
         text_in_words = [token for token in tokens if token != '']
+        text_in_words.append('')
 
         self._tokens = set(text_in_words)
         # [print(token) for token in self._tokens]
+        print(self._tokens)
         print('Vocabulary Size: ', len(self._tokens))
 
         self._word_indices = dict((c, i) for i, c in enumerate(self._tokens))
