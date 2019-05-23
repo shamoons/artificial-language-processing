@@ -7,13 +7,14 @@ from keras.models import Sequential
 from keras.layers import Embedding, LSTM, Dropout, Dense, Activation
 from keras.utils import to_categorical
 from keras.callbacks import ModelCheckpoint, EarlyStopping
+from sklearn.model_selection import train_test_split
 
 
 class CodeModel:
     def __init__(self, corpus, seq_length=100, weights=None):
         self._corpus = corpus
         self.SEQ_LENGTH = seq_length
-        self.BATCH_SIZE = 5
+        self.BATCH_SIZE = 32
         self._load_corpus()
         self._build_model(weights=weights)
 
@@ -59,7 +60,6 @@ class CodeModel:
         text_in_words = [token for token in tokens if token != '']
         text_in_words.append('')
 
-        print('text_in_words', len(text_in_words))
         self._tokens = set(text_in_words)
         # [print(token) for token in self._tokens]
         print('Vocabulary Size: ', len(self._tokens))
@@ -93,7 +93,7 @@ class CodeModel:
         filecontents = filecontents.replace("\n\n", "\n")
         filecontents = filecontents.replace('\n', ' \n ')
         filecontents = filecontents.replace(', ', ' , ')
-        filecontents = filecontents.replace('(', '( ')
+        filecontents = filecontents.replace('(', ' ( ')
         filecontents = filecontents.replace(')', ' )')
         filecontents = filecontents.replace('[', '[ ')
         filecontents = filecontents.replace(']', ' ]')
@@ -134,8 +134,11 @@ class CodeModel:
         source_code, next_tokens = self._encode(
             self.source_code, self.next_tokens)
 
-        self._model.fit(source_code, next_tokens, epochs=500, callbacks=callbacks,
-                        verbose=2, batch_size=self.BATCH_SIZE, shuffle=True, validation_split=0.1)
+        x_train, x_valid, y_train, y_valid = train_test_split(
+            source_code, next_tokens, test_size=0.1, shuffle=True)
+
+        self._model.fit(x_train, y_train, epochs=500, callbacks=callbacks,
+                        verbose=2, batch_size=self.BATCH_SIZE, shuffle=True, validation_data=(x_valid, y_valid))
 
     def generate(self):
         x_pred = np.zeros((1, self.SEQ_LENGTH))
