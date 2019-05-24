@@ -56,4 +56,14 @@ After 18 epochs, `719s - loss: 12.6027 - acc: 0.2182 - val_loss: 12.6131 - val_a
 * Balancing Classes (https://stackoverflow.com/a/53397560/239879)
 
 #### Result
+After 40 epochs, `703s - loss: 11.1046 - sparse_categorical_accuracy: 0.3111 - val_loss: 11.0284 - val_sparse_categorical_accuracy: 0.3159`
+
+### Experiment 6
+* lr=2
+* BATCH_SIZE=4
+* SEQ_LENGTH=100
+* No Dropout
+* Added `clipnorm=1` to Adam
+
+### Result
 Running

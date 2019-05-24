@@ -12,7 +12,7 @@ from sklearn.utils import compute_class_weight
 
 
 class CodeModel:
-    def __init__(self, corpus, seq_length=100, weights=None, batch_size=8):
+    def __init__(self, corpus, seq_length=100, weights=None, batch_size=4):
         self._corpus = corpus
         self.SEQ_LENGTH = seq_length
         self.BATCH_SIZE = batch_size
@@ -21,9 +21,9 @@ class CodeModel:
 
     def _setup_callbacks(self):
         model_checkpoint = ModelCheckpoint(
-            'models/python.hdf5', verbose=1, monitor='val_acc', save_weights_only=True)
+            'models/python.hdf5', verbose=1, monitor='val_sparse_categorical_accuracy', save_weights_only=True)
         earlystopping_callback = EarlyStopping(verbose=1,
-                                               monitor='val_acc', patience=50)
+                                               monitor='val_sparse_categorical_accuracy', patience=50)
         return [model_checkpoint]
 
     def _build_model(self, weights=None):
@@ -45,7 +45,7 @@ class CodeModel:
                 print('Loading weights: ', weights)
                 model.load_weights(weights, by_name=True)
 
-        adam_optimizer = Adam(lr=1)
+        adam_optimizer = Adam(lr=2, clipnorm=1)
 
         model.compile(loss='sparse_categorical_crossentropy',
                       optimizer=adam_optimizer, metrics=['sparse_categorical_accuracy'])
