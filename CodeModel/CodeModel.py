@@ -12,7 +12,7 @@ from sklearn.utils import compute_class_weight
 
 
 class CodeModel:
-    def __init__(self, corpus, seq_length=100, weights=None, batch_size=16):
+    def __init__(self, corpus, seq_length=100, weights=None, batch_size=64):
         self._corpus = corpus
         self.SEQ_LENGTH = seq_length
         self.BATCH_SIZE = batch_size
@@ -45,7 +45,7 @@ class CodeModel:
                 print('Loading weights: ', weights)
                 model.load_weights(weights, by_name=True)
 
-        adam_optimizer = Adam(lr=2, clipnorm=1, clipvalue=0.5)
+        adam_optimizer = Adam(lr=0.001, clipnorm=1, clipvalue=1)
 
         model.compile(loss='sparse_categorical_crossentropy',
                       optimizer=adam_optimizer, metrics=['sparse_categorical_accuracy'])
@@ -84,17 +84,19 @@ class CodeModel:
 
             i = 0
             next_token = ''
-            input("New section")
+            # input("New section")
 
             while next_token != '<eos>':
                 codeline = section_text_in_words[i: i + self.SEQ_LENGTH]
                 next_token = section_text_in_words[i + self.SEQ_LENGTH]
-                print(i, codeline, next_token)
+                # print(i, codeline, next_token)
                 i += 1
                 self.source_code.append(codeline)
                 self.next_tokens.append(next_token)
 
     def _sanitize(self, filecontents):
+        filecontents = re.sub(r'(?m)^ *#.*\n?', '',
+                              filecontents)  # Remove comments
         filecontents = filecontents.replace("\n\n", "\n")
         filecontents = filecontents.replace('\n', ' \n ')
         filecontents = filecontents.replace(', ', ' , ')

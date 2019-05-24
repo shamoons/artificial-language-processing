@@ -77,4 +77,15 @@ After 28 epochs, `385s - loss: 15.9803 - sparse_categorical_accuracy: 0.0086 - v
 * Changed `clipvalue=0.5` to Adam
 
 ### Result
+After 38 epochs, `474s - loss: 14.0049 - sparse_categorical_accuracy: 0.1312 - val_loss: 13.8736 - val_sparse_categorical_accuracy: 0.1393`
+
+### Experiment 8
+* lr=0.001
+* BATCH_SIZE=64
+* SEQ_LENGTH=150
+* No Dropout
+* Changed `clipvalue=1` to Adam
+* Cleaned up scraper.
+
+### Result
 Running

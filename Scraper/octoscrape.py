@@ -16,15 +16,15 @@ class Octoscrape:
 
     def search_repos(self):
         return self.g.search_repositories(
-            query='keras stars:>=500 fork:true language:python', sort='stars', order='asc').get_page(self.page)
+            query='neural network stars:>=500 fork:true language:python', sort='stars', order='asc').get_page(self.page)
 
     def get_contents(self, repo, file_extension):
         try:
             contents = repo.get_contents("")
+            print("Doing repo: ", repo.full_name, '\n')
 
             f = open("data/python.txt", "a")
             while len(contents) > 1:
-                print("Length of contents (" + repo.full_name + "): ", len(contents))
                 file_content = contents.pop(0)
                 x_ratelimit_remaining = int(
                     file_content.raw_headers['x-ratelimit-remaining'])
