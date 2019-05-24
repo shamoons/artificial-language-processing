@@ -12,7 +12,7 @@ from sklearn.utils import compute_class_weight
 
 
 class CodeModel:
-    def __init__(self, corpus, seq_length=100, weights=None, batch_size=4):
+    def __init__(self, corpus, seq_length=100, weights=None, batch_size=16):
         self._corpus = corpus
         self.SEQ_LENGTH = seq_length
         self.BATCH_SIZE = batch_size
@@ -45,7 +45,7 @@ class CodeModel:
                 print('Loading weights: ', weights)
                 model.load_weights(weights, by_name=True)
 
-        adam_optimizer = Adam(lr=2, clipnorm=1)
+        adam_optimizer = Adam(lr=2, clipnorm=1, clipvalue=1)
 
         model.compile(loss='sparse_categorical_crossentropy',
                       optimizer=adam_optimizer, metrics=['sparse_categorical_accuracy'])

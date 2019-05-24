@@ -60,10 +60,11 @@ After 40 epochs, `703s - loss: 11.1046 - sparse_categorical_accuracy: 0.3111 - v
 
 ### Experiment 6
 * lr=2
-* BATCH_SIZE=4
+* BATCH_SIZE=16
 * SEQ_LENGTH=100
 * No Dropout
 * Added `clipnorm=1` to Adam
+* Added `clipvalue=1` to Adam
 
 ### Result
 Running
