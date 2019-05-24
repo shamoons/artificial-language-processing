@@ -11,8 +11,8 @@ parser.add_argument('--weights', dest='weights', default='models/python.phdf5',
 parser.add_argument('--corpus', dest='corpus', default='data/python.txt',
                     help='Filename for the corpus')
 
-parser.add_argument('--seq_length', dest='seq_length', default=100,
-                    help='Start Index')
+parser.add_argument('--seq_length', dest='seq_length', default=150,
+                    help='Sequence length to look back on')
 
 args = parser.parse_args()
 

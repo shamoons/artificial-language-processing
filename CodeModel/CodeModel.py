@@ -45,7 +45,7 @@ class CodeModel:
                 print('Loading weights: ', weights)
                 model.load_weights(weights, by_name=True)
 
-        adam_optimizer = Adam(lr=2, clipnorm=1, clipvalue=1)
+        adam_optimizer = Adam(lr=2, clipnorm=1, clipvalue=0.5)
 
         model.compile(loss='sparse_categorical_crossentropy',
                       optimizer=adam_optimizer, metrics=['sparse_categorical_accuracy'])
@@ -138,17 +138,22 @@ class CodeModel:
 
         class_weights = compute_class_weight(
             'balanced', np.unique(y_train), y_train)
-        # print(class_weights)
+
         # for i in range(0, len(x_train)):
-        #     x_phrase = ''
+        #     x_phrase = []
         #     for x_word in x_train[i]:
-        #         x_phrase += self._indices_word[x_word]
-        #     print('\n~~s~~ ' + x_phrase + " :: " +
-        #           self._indices_word[y_train[i]])
+        #         x_phrase.append(self._indices_word[x_word])
+        #     print('\n======')
+        #     print(x_phrase)
+        #     print([self._indices_word[y_train[i]]])
 
         # print(len(np.unique(y_train)))
         # print(len(y_train))
-        # print(len(class_weights))
+        # print(len(np.unique(y_valid)))
+        # print(len(y_valid))
+        # print(len(np.unique(next_tokens)))
+        # print(len(next_tokens))
+
         # quit()
 
         self._model.fit(x_train, y_train, epochs=500, callbacks=callbacks, class_weight=class_weights,
@@ -175,6 +180,7 @@ class CodeModel:
         token_count = 0
         while next_word != "<eos>" and token_count < 1000:
             preds = self._model.predict(x_pred, verbose=0)[0]
+
             next_index = np.argmax(preds)
             next_word = self._indices_word[next_index]
 
