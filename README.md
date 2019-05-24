@@ -35,9 +35,25 @@ After 12 epochs, gets stuck at `266s - loss: 9.8586 - acc: 0.3884 - val_loss: 9.
 * SEQ_LENGTH=60
 * No Dropout
 * Switching from `categorical_cross_entropy` to `sparse_categorical_crossentropy` loss function
+  
+#### Result
+After 14 epochs, `63s - loss: 15.9969 - acc: 0.0076 - val_loss: 15.9936 - val_acc: 0.0078`
 
 ### Experiment 4
 * lr=0.075
 * BATCH_SIZE=8
 * SEQ_LENGTH=100
 * No Dropout
+
+#### Result
+After 18 epochs, `719s - loss: 12.6027 - acc: 0.2182 - val_loss: 12.6131 - val_acc: 0.2176`
+
+### Experiment 5
+* lr=1
+* BATCH_SIZE=8
+* SEQ_LENGTH=100
+* No Dropout
+* Balancing Classes (https://stackoverflow.com/a/53397560/239879)
+
+#### Result
+Running

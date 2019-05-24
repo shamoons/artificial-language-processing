@@ -5,10 +5,10 @@ import io
 import numpy as np
 from keras.models import Sequential
 from keras.layers import Embedding, LSTM, Dropout, Dense, Activation
-from keras.utils import to_categorical
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from sklearn.model_selection import train_test_split
+from sklearn.utils import compute_class_weight
 
 
 class CodeModel:
@@ -45,10 +45,10 @@ class CodeModel:
                 print('Loading weights: ', weights)
                 model.load_weights(weights, by_name=True)
 
-        adam_optimizer = Adam(lr=0.05)
+        adam_optimizer = Adam(lr=1)
 
         model.compile(loss='sparse_categorical_crossentropy',
-                      optimizer=adam_optimizer, metrics=['accuracy'])
+                      optimizer=adam_optimizer, metrics=['sparse_categorical_accuracy'])
 
         self._model = model
 
@@ -121,14 +121,10 @@ class CodeModel:
             encoded_sequence = []
             for token in seq:
                 encoded_sequence.append(self._word_indices[token])
-            # categorial_sequence = to_categorical(
-            #     encoded_sequence, num_classes=len(self._tokens))
             encoded_sequences.append(encoded_sequence)
 
         for next_token in next_tokens:
             encoded_outputs.append(self._word_indices[next_token])
-        # categorial_output = to_categorical(
-        #     encoded_outputs, num_classes=len(self._tokens))
 
         return np.array(encoded_sequences), np.array(encoded_outputs)
 
@@ -139,25 +135,23 @@ class CodeModel:
 
         x_train, x_valid, y_train, y_valid = train_test_split(
             source_code, next_tokens, test_size=0.1, shuffle=True)
-        # x_train = np.random.choice(x_train, (1, self.SEQ_LENGTH))
-        # np.random.shuffle(y_train)
-        # random_index = np.random.randint(0, x_train.shape[0])
-        # x_train = np.array([x_train[random_index]])
-        # y_train = np.array([y_train[random_index]])
 
-        # random_index = np.random.randint(0, x_valid.shape[0])
+        class_weights = compute_class_weight(
+            'balanced', np.unique(y_train), y_train)
+        # print(class_weights)
+        # for i in range(0, len(x_train)):
+        #     x_phrase = ''
+        #     for x_word in x_train[i]:
+        #         x_phrase += self._indices_word[x_word]
+        #     print('\n~~s~~ ' + x_phrase + " :: " +
+        #           self._indices_word[y_train[i]])
 
-        # x_valid = np.array([x_valid[random_index]])
-        # y_valid = np.array([y_valid[random_index]])
-
-        # print(x_train)
-        # print(x_train.shape)
-
-        # print(y_train)
-        # print(y_train.shape)
+        # print(len(np.unique(y_train)))
+        # print(len(y_train))
+        # print(len(class_weights))
         # quit()
 
-        self._model.fit(x_train, y_train, epochs=500, callbacks=callbacks,
+        self._model.fit(x_train, y_train, epochs=500, callbacks=callbacks, class_weight=class_weights,
                         verbose=2, batch_size=self.BATCH_SIZE, shuffle=True, validation_data=(x_valid, y_valid))
 
     def generate(self):
