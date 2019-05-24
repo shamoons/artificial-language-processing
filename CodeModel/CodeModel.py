@@ -84,10 +84,12 @@ class CodeModel:
 
             i = 0
             next_token = ''
+            input("New section")
 
             while next_token != '<eos>':
                 codeline = section_text_in_words[i: i + self.SEQ_LENGTH]
                 next_token = section_text_in_words[i + self.SEQ_LENGTH]
+                print(i, codeline, next_token)
                 i += 1
                 self.source_code.append(codeline)
                 self.next_tokens.append(next_token)
@@ -147,14 +149,14 @@ class CodeModel:
         #     print(x_phrase)
         #     print([self._indices_word[y_train[i]]])
 
-        # print(len(np.unique(y_train)))
-        # print(len(y_train))
-        # print(len(np.unique(y_valid)))
-        # print(len(y_valid))
-        # print(len(np.unique(next_tokens)))
-        # print(len(next_tokens))
+        print(len(np.unique(y_train)))
+        print(len(y_train))
+        print(len(np.unique(y_valid)))
+        print(len(y_valid))
+        print(len(np.unique(self.next_tokens)))
+        print(len(self.next_tokens))
 
-        # quit()
+        quit()
 
         self._model.fit(x_train, y_train, epochs=500, callbacks=callbacks, class_weight=class_weights,
                         verbose=2, batch_size=self.BATCH_SIZE, shuffle=True, validation_data=(x_valid, y_valid))
