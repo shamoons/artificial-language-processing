@@ -81,7 +81,7 @@ After 38 epochs, `474s - loss: 14.0049 - sparse_categorical_accuracy: 0.1312 - v
 
 ### Experiment 8
 * lr=0.001
-* BATCH_SIZE=64
+* BATCH_SIZE=16
 * SEQ_LENGTH=150
 * No Dropout
 * Changed `clipvalue=1` to Adam

@@ -12,7 +12,7 @@ from sklearn.utils import compute_class_weight
 
 
 class CodeModel:
-    def __init__(self, corpus, seq_length=100, weights=None, batch_size=64):
+    def __init__(self, corpus, seq_length=100, weights=None, batch_size=16):
         self._corpus = corpus
         self.SEQ_LENGTH = seq_length
         self.BATCH_SIZE = batch_size
