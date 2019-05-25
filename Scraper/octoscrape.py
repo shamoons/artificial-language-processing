@@ -12,11 +12,10 @@ load_dotenv()
 class Octoscrape:
     def __init__(self, page=0):
         self.g = Github(os.environ['GITHUB_TOKEN'], retry=5)
-        self.page = page
 
-    def search_repos(self):
+    def search_repos(self, page=0):
         return self.g.search_repositories(
-            query='neural network stars:>=500 fork:true language:python', sort='stars', order='asc').get_page(self.page)
+            query='keras stars:>=500 fork:true language:python', sort='stars', order='asc').get_page(page)
 
     def get_contents(self, repo, file_extension):
         try:
@@ -34,9 +33,12 @@ class Octoscrape:
                     print("Invoking sleep", sleep_time)
                     time.sleep(sleep_time)
 
+                print('go')
                 if file_content.type == "dir":
+                    print("dir")
                     contents.extend(repo.get_contents(file_content.path))
                 else:
+                    print("file", file_content.path)
                     if file_content.path.endswith(file_extension):
                         written_file_content = '<s>\n'
                         written_file_content += "# " + repo.full_name + '\n'
@@ -45,8 +47,10 @@ class Octoscrape:
                             file_content.content).decode('utf-8')
                         decoded_content = self._clean_code(decoded_content)
                         print(repo.full_name + "/" +
-                              file_content.path, x_ratelimit_remaining)
-                        print("Code size: ", len(decoded_content), '\n')
+                              file_content.path,
+                              "Rate: " + str(x_ratelimit_remaining),
+                              "Code size: " + str(len(decoded_content)),
+                              )
                         written_file_content += decoded_content
                         written_file_content += "<eos>\n"
                         if len(written_file_content) > 500:
@@ -62,7 +66,3 @@ class Octoscrape:
     def _clean_code(self, code):
         code = re.sub(r'(?m)^ *#.*\n?', '', code)
         return autopep8.fix_code(code, options={'ignore': ['E501'], 'aggressive': 2})
-
-    def next_page(self):
-        print("Moving to page: ", self.page + 1)
-        self.page += 1
