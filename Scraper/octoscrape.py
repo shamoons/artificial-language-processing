@@ -33,19 +33,19 @@ class Octoscrape:
                     print("Invoking sleep", sleep_time)
                     time.sleep(sleep_time)
 
-                print('go')
                 if file_content.type == "dir":
-                    print("dir")
                     contents.extend(repo.get_contents(file_content.path))
                 else:
-                    print("file", file_content.path)
                     if file_content.path.endswith(file_extension):
                         written_file_content = '<s>\n'
                         written_file_content += "# " + repo.full_name + '\n'
                         written_file_content += "# " + file_content.path + '\n'
+                        print("before decode")
                         decoded_content = base64.b64decode(
                             file_content.content).decode('utf-8')
+                        print("after decode")
                         decoded_content = self._clean_code(decoded_content)
+                        print("after clean")
                         print(repo.full_name + "/" +
                               file_content.path,
                               "Rate: " + str(x_ratelimit_remaining),
