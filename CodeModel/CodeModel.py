@@ -79,17 +79,16 @@ class CodeModel:
             section_text_in_words = [
                 token for token in section_tokens if token != '']
 
-            if len(section_text_in_words) <= self.SEQ_LENGTH:
+            if len(section_text_in_words) <= self.SEQ_LENGTH + 1:
                 continue
 
             i = 0
             next_token = ''
-            # input("New section")
 
             while next_token != '<eos>':
                 codeline = section_text_in_words[i: i + self.SEQ_LENGTH]
                 next_token = section_text_in_words[i + self.SEQ_LENGTH]
-
+                print(i, codeline, next_token)
                 i += 1
                 self.source_code.append(codeline)
                 self.next_tokens.append(next_token)
