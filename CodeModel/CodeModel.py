@@ -115,8 +115,8 @@ class CodeModel:
         return tokens
 
     def _encode(self, x, y):
-        sequences = np.array(x)
-        next_tokens = np.array(y)
+        sequences = x
+        next_tokens = y
 
         encoded_sequences = []
         encoded_outputs = []
