@@ -37,6 +37,11 @@ class Octoscrape:
                     contents.extend(repo.get_contents(file_content.path))
                 else:
                     if file_content.path.endswith(file_extension):
+                        print(repo.full_name + "/" +
+                              file_content.path,
+                              "Rate: " + str(x_ratelimit_remaining)
+                              )
+
                         written_file_content = '<s>\n'
                         written_file_content += "# " + repo.full_name + '\n'
                         written_file_content += "# " + file_content.path + '\n'
@@ -46,11 +51,6 @@ class Octoscrape:
                         print("after decode")
                         decoded_content = self._clean_code(decoded_content)
                         print("after clean")
-                        print(repo.full_name + "/" +
-                              file_content.path,
-                              "Rate: " + str(x_ratelimit_remaining),
-                              "Code size: " + str(len(decoded_content)),
-                              )
                         written_file_content += decoded_content
                         written_file_content += "<eos>\n"
                         if len(written_file_content) > 500:
