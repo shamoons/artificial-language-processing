@@ -45,12 +45,10 @@ class Octoscrape:
                         written_file_content = '<s>\n'
                         written_file_content += "# " + repo.full_name + '\n'
                         written_file_content += "# " + file_content.path + '\n'
-                        print("before decode")
+
                         decoded_content = base64.b64decode(
                             file_content.content).decode('utf-8')
-                        print("after decode")
                         decoded_content = self._clean_code(decoded_content)
-                        print("after clean")
                         written_file_content += decoded_content
                         written_file_content += "<eos>\n"
                         if len(written_file_content) > 500:
@@ -64,5 +62,8 @@ class Octoscrape:
             pass
 
     def _clean_code(self, code):
+
         code = re.sub(r'(?m)^ *#.*\n?', '', code)
-        return autopep8.fix_code(code, options={'ignore': ['E501'], 'aggressive': 2})
+        code = autopep8.fix_code(
+            code, options={'ignore': ['E501'], 'aggressive': 2})
+        return code

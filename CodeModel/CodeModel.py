@@ -12,7 +12,7 @@ from sklearn.utils import compute_class_weight
 
 
 class CodeModel:
-    def __init__(self, corpus, seq_length=100, weights=None, batch_size=8):
+    def __init__(self, corpus, seq_length=100, weights=None, batch_size=32):
         self._corpus = corpus
         self.SEQ_LENGTH = seq_length
         self.BATCH_SIZE = batch_size
@@ -45,7 +45,7 @@ class CodeModel:
                 print('Loading weights: ', weights)
                 model.load_weights(weights, by_name=True)
 
-        adam_optimizer = Adam(lr=0.0005, clipnorm=1, clipvalue=1)
+        adam_optimizer = Adam(lr=0.0005, decay=0.995, clipnorm=1, clipvalue=1)
 
         model.compile(loss='sparse_categorical_crossentropy',
                       optimizer=adam_optimizer, metrics=['sparse_categorical_accuracy'])
@@ -65,7 +65,9 @@ class CodeModel:
 
         self._tokens = set(text_in_words)
         # [print(token) for token in self._tokens]
+        # print(self._tokens)
         print('Vocabulary Size: ', len(self._tokens))
+        # quit()
 
         self._word_indices = dict((c, i) for i, c in enumerate(self._tokens))
         self._indices_word = dict((i, c) for i, c in enumerate(self._tokens))
@@ -77,7 +79,7 @@ class CodeModel:
         for section in sections:
             section_tokens = self._tokenize(section)
             section_text_in_words = [
-                token for token in section_tokens if token != '']
+                token for token in section_tokens]
 
             if len(section_text_in_words) <= self.SEQ_LENGTH + 1:
                 continue
@@ -88,7 +90,8 @@ class CodeModel:
             while next_token != '<eos>':
                 codeline = section_text_in_words[i: i + self.SEQ_LENGTH]
                 next_token = section_text_in_words[i + self.SEQ_LENGTH]
-                # print(i, codeline, next_token)
+                # print('\n', i, codeline)
+                # print([next_token])
                 i += 1
                 self.source_code.append(codeline)
                 self.next_tokens.append(next_token)

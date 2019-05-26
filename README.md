@@ -92,10 +92,9 @@ After 23 epochs, `978s - loss: 2.5998 - sparse_categorical_accuracy: 0.4812 - va
 Accuracy went down from a peak of 8 epochs, `972s - loss: 0.5992 - sparse_categorical_accuracy: 0.8476 - val_loss: 2.5992 - val_sparse_categorical_accuracy: 0.6423`
 
 ### Experiment 9
-* lr=0.0005
-* BATCH_SIZE=16
+* lr=0.001, decay=0.995
+* BATCH_SIZE=64
 * SEQ_LENGTH=150
-* Added Dropout (0.5)
 
 ### Result
 Running
