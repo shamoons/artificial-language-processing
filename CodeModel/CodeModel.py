@@ -34,7 +34,7 @@ class CodeModel:
 
         model.add(LSTM(512))
 
-        # model.add(Dropout(rate=0.5))
+        model.add(Dropout(rate=0.5))
         model.add(Dense(vocab_size - 1, activation='softmax'))
         print(model.summary())
 
