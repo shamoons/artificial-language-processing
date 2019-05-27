@@ -12,7 +12,7 @@ from sklearn.utils import compute_class_weight
 
 
 class CodeModel:
-    def __init__(self, corpus, seq_length=100, weights=None, batch_size=32):
+    def __init__(self, corpus, seq_length=100, weights=None, batch_size=128):
         self._corpus = corpus
         self.SEQ_LENGTH = seq_length
         self.BATCH_SIZE = batch_size
@@ -21,7 +21,7 @@ class CodeModel:
 
     def _setup_callbacks(self):
         model_checkpoint = ModelCheckpoint(
-            'models/python.hdf5', verbose=1, monitor='val_sparse_categorical_accuracy', save_weights_only=True)
+            'models/python.hdf5', verbose=1, monitor='val_sparse_categorical_accuracy', save_weights_only=True, save_best_only=True)
         earlystopping_callback = EarlyStopping(verbose=1,
                                                monitor='val_sparse_categorical_accuracy', patience=50)
         return [model_checkpoint]
@@ -32,6 +32,7 @@ class CodeModel:
         model.add(Embedding(input_dim=vocab_size,
                             output_dim=64, input_length=self.SEQ_LENGTH))
 
+        model.add(LSTM(512, return_sequences=True))
         model.add(LSTM(512))
 
         model.add(Dropout(rate=0.5))
@@ -78,11 +79,15 @@ class CodeModel:
         sections = filecontents.split('<s>')
         for section in sections:
             section_tokens = self._tokenize(section)
+
             section_text_in_words = [
                 token for token in section_tokens]
 
             if len(section_text_in_words) <= self.SEQ_LENGTH + 1:
                 continue
+
+            for j in range(self.SEQ_LENGTH):
+                section_text_in_words.insert(0, '')
 
             i = 0
             next_token = ''

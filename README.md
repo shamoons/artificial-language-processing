@@ -97,4 +97,15 @@ Accuracy went down from a peak of 8 epochs, `972s - loss: 0.5992 - sparse_catego
 * SEQ_LENGTH=150
 
 ### Result
+After epoch 20, `1078s - loss: 3.4757 - sparse_categorical_accuracy: 0.5847 - val_loss: 3.4988 - val_sparse_categorical_accuracy: 0.5757`
+
+
+### Experiment 10
+* lr=0.001, decay=0.995
+* BATCH_SIZE=128
+* SEQ_LENGTH=150
+* Added another `LSTM` block
+* Added `save_best_only=True` to `ModelCheckpoint`
+
+### Result
 Running
