@@ -55,7 +55,7 @@ class CodeModel:
         filecontents = self._sanitize(filecontents)
 
         tokens = self._tokenize(filecontents)
-        text_in_words = [token for token in tokens if token != '']
+        text_in_words = [token for token in tokens]
 
         self._tokens = set(text_in_words)
 
@@ -65,7 +65,7 @@ class CodeModel:
         self.source_code = []
         self.next_tokens = []
 
-        sections = filecontents.split('<s>')
+        sections = filecontents.split('<eos>')
         for section in sections:
             section_tokens = self._tokenize(section)
             section_text_in_words = [
