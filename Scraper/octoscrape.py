@@ -53,29 +53,6 @@ class Octoscrape:
 
         except Exception as e:
             print("Error: ", e)
-        return
-        try:
-            contents = repo.get_contents("")
-            written_file_content = '<s>\n'
-
-            f = open("data/python.txt", "a")
-            while len(contents) > 1:
-                file_content = contents.pop(0)
-
-                if file_content.type == "dir":
-                    contents.extend(repo.get_contents(file_content.path))
-                else:
-                    if file_content.path.endswith(file_extension):
-                        decoded_content = base64.b64decode(
-                            file_content.content).decode('utf-8')
-                        decoded_content = self._clean_code(decoded_content)
-                        print("Code size: ", len(decoded_content))
-                        written_file_content += decoded_content
-                        written_file_content += "<eos>\n"
-                        if len(written_file_content) > 300:
-                            f.write(written_file_content)
-            f.close()
-        except:
             time.sleep(1)
             pass
 
