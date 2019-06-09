@@ -33,19 +33,17 @@ class Octoscrape:
     def get_contents(self, repo, file_extension):
         try:
             query = "size:>" + str(self.MIN_CODE_SIZE)
-            print("\n=======\n")
-            print(query)
             f = open("data/python.txt", "a")
             code_files = self.g.search_code(
                 query=query, extension="py", repo=repo.full_name)
             for code_file in code_files:
-                print(code_file)
+                print(repo.full_name + "/" + code_file.path)
                 self._delay()
                 decoded_content = base64.b64decode(
                     code_file.content).decode('utf-8')
                 decoded_content = self._clean_code(decoded_content)
                 if len(decoded_content) > self.MIN_CODE_SIZE:
-                    print("Code size: ", len(decoded_content))
+                    print("\tCode size: ", len(decoded_content))
                     written_file_content = "# " + repo.full_name + "\n"
                     written_file_content += "# " + code_file.path + "\n"
                     written_file_content += decoded_content
