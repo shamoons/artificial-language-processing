@@ -3,22 +3,38 @@ import base64
 import os
 import autopep8
 import time
+import github
 from dotenv import load_dotenv
 from github import Github
+from github import enable_console_debug_logging
+
+enable_console_debug_logging()
 
 load_dotenv()
 
 
 class Octoscrape:
     def __init__(self, page=0):
-        self.g = Github(os.environ['GITHUB_TOKEN'], retry=5)
+        self.g = Github(login_or_token=os.environ['GITHUB_TOKEN'], retry=5)
         self.page = page
 
     def search_repos(self):
         return self.g.search_repositories(
-            query='keras stars:>=1000 fork:true language:python').get_page(self.page)
+            query='torch stars:>=1000 fork:true language:python').get_page(self.page)
 
     def get_contents(self, repo, file_extension):
+        try:
+            query = "extension:py+repo:" + repo.full_name
+            print("\n=======\n")
+            print(query)
+            code_files = self.g.search_code(query)
+            for code_file in code_files:
+                print(code_file)
+                quit()
+
+        except Exception as e:
+            print("Error: ", e)
+        return
         try:
             contents = repo.get_contents("")
             written_file_content = '<s>\n'
