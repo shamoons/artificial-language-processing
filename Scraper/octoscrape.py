@@ -28,14 +28,14 @@ class Octoscrape:
 
     def search_repos(self):
         return self.g.search_repositories(
-            query='torch stars:>=1000 fork:true language:python').get_page(self.page)
+            query='stars:>=1000 fork:true language:python', sort='stars', order='desc').get_page(self.page)
 
     def get_contents(self, repo, file_extension):
         try:
             query = "size:>" + str(self.MIN_CODE_SIZE)
             f = open("data/python.txt", "a")
             code_files = self.g.search_code(
-                query=query, extension="py", repo=repo.full_name)
+                query=query, extension=file_extension, repo=repo.full_name)
             for code_file in code_files:
                 print(repo.full_name + "/" + code_file.path)
                 self._delay()

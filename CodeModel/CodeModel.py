@@ -149,3 +149,6 @@ class CodeModel:
         #     # append to input
         #     in_text, result = out_word, result + ' ' + out_word
         # return result
+
+    def gather(self):
+        print("here i am")
