@@ -14,7 +14,7 @@ from github import enable_console_debug_logging
 load_dotenv()
 
 
-class Octoscrape:
+class BaseScraper:
     def __init__(self, page=0, min_code_size=300):
         self.g = Github(login_or_token=os.environ['GITHUB_TOKEN'], retry=5)
         self.page = page
