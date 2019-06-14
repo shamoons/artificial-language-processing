@@ -3,6 +3,7 @@ import re
 import tokenize
 import io
 import numpy as np
+import re
 from keras.models import Sequential
 from keras.layers import Embedding, LSTM, Dropout, Dense, Activation
 from keras.utils import to_categorical
@@ -92,9 +93,12 @@ class CodeModel:
         filecontents = filecontents.replace("\n\n", "\n")
         filecontents = filecontents.replace('\n', ' \n ')
         filecontents = filecontents.replace('(', '( ')
-        filecontents = filecontents.replace(')', ' )')
+        filecontents = filecontents.replace(')', ' ) ')
         filecontents = filecontents.replace('[', '[ ')
         filecontents = filecontents.replace(']', ' ]')
+        filecontents = filecontents.replace(', ', ' , ')
+        filecontents = re.sub(
+            r'(?<![=!<>+-\/\*])(\=)(?![=!<>+-\/\*])', ' = ', filecontents)
 
         return filecontents
 
@@ -158,14 +162,19 @@ class CodeModel:
         #     in_text, result = out_word, result + ' ' + out_word
         # return result
 
-    def gather(self, corpus_size=1000, runs=100):
-        # print(self.tokens_in_words)
+    def gather(self, corpus_size=1000, runs=200):
         total_corpus_size = len(self.tokens_in_words)
-        start_index = np.random.randint(0, total_corpus_size - corpus_size)
-        end_index = start_index + corpus_size
-        corpus = self.tokens_in_words[start_index: end_index]
 
-        unique_tokens = np.unique(corpus)
-        unique_count = len(unique_tokens)
-        print(corpus)
-        print(unique_tokens)
+        counter = []
+        for i in range(runs):
+            start_index = np.random.randint(0, total_corpus_size - corpus_size)
+            end_index = start_index + corpus_size
+            corpus = self.tokens_in_words[start_index: end_index]
+
+            unique_tokens = np.unique(corpus)
+            unique_count = len(unique_tokens)
+            unique_percent = unique_count / len(corpus)
+            counter.append(unique_percent)
+        print("Corpus Size: ", corpus_size, ' / ', total_corpus_size)
+        print("\tAverage: ", np.average(counter))
+        print("\tStd Dev: ", np.std(counter))

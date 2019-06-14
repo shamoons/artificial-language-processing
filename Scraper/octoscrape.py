@@ -28,7 +28,7 @@ class Octoscrape:
 
     def search_repos(self):
         return self.g.search_repositories(
-            query='stars:>=1000 fork:true language:python', sort='stars', order='desc').get_page(self.page)
+            query='ipython stars:>=500 fork:true language:python', sort='stars', order='desc').get_page(self.page)
 
     def get_contents(self, repo, file_extension):
         try:
