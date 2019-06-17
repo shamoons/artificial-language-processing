@@ -3,6 +3,7 @@ import re
 import tokenize
 import io
 import numpy as np
+import re
 from keras.models import Sequential
 from keras.layers import Embedding, LSTM, Dropout, Dense, Activation
 from keras.utils import to_categorical
@@ -15,7 +16,7 @@ class CodeModel:
         self.SEQ_LENGTH = seq_length
         self.BATCH_SIZE = 10
         self._load_corpus()
-        self._build_model()
+        # self._build_model()
 
     def _setup_callbacks(self):
         model_checkpoint = ModelCheckpoint(
@@ -55,9 +56,9 @@ class CodeModel:
         filecontents = self._sanitize(filecontents)
 
         tokens = self._tokenize(filecontents)
-        text_in_words = [token for token in tokens]
+        self.tokens_in_words = [token for token in tokens]
 
-        self._tokens = set(text_in_words)
+        self._tokens = set(self.tokens_in_words)
 
         self._word_indices = dict((c, i) for i, c in enumerate(self._tokens))
         self._indices_word = dict((i, c) for i, c in enumerate(self._tokens))
@@ -77,16 +78,27 @@ class CodeModel:
             i = 0
             next_token = ''
 
-            while next_token != '<eos>':
+            while i < len(section_text_in_words) - self.SEQ_LENGTH:
                 codeline = section_text_in_words[i: i + self.SEQ_LENGTH]
                 next_token = section_text_in_words[i + self.SEQ_LENGTH]
                 i += 1
                 self.source_code.append(codeline)
                 self.next_tokens.append(next_token)
+            codeline = section_text_in_words[i: i + self.SEQ_LENGTH]
+            next_token = '<eos>'
+            self.source_code.append(codeline)
+            self.next_tokens.append(next_token)
 
     def _sanitize(self, filecontents):
         filecontents = filecontents.replace("\n\n", "\n")
         filecontents = filecontents.replace('\n', ' \n ')
+        filecontents = filecontents.replace('(', '( ')
+        filecontents = filecontents.replace(')', ' ) ')
+        filecontents = filecontents.replace('[', '[ ')
+        filecontents = filecontents.replace(']', ' ]')
+        filecontents = filecontents.replace(', ', ' , ')
+        filecontents = re.sub(
+            r'(?<![=!<>+-\/\*])(\=)(?![=!<>+-\/\*])', ' = ', filecontents)
 
         return filecontents
 
@@ -149,3 +161,20 @@ class CodeModel:
         #     # append to input
         #     in_text, result = out_word, result + ' ' + out_word
         # return result
+
+    def gather(self, corpus_size=1000, runs=200):
+        total_corpus_size = len(self.tokens_in_words)
+
+        counter = []
+        for i in range(runs):
+            start_index = np.random.randint(0, total_corpus_size - corpus_size)
+            end_index = start_index + corpus_size
+            corpus = self.tokens_in_words[start_index: end_index]
+
+            unique_tokens = np.unique(corpus)
+            unique_count = len(unique_tokens)
+            unique_percent = unique_count / len(corpus)
+            counter.append(unique_percent)
+        print("Corpus Size: ", corpus_size, ' / ', total_corpus_size)
+        print("\tAverage: ", np.average(counter))
+        print("\tStd Dev: ", np.std(counter))

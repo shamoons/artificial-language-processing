@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "caf19497a11d9a9bd7a13977ab4c75a2d5f43d6bf0b731aa0eff9405702d53eb"
+            "sha256": "f144a14f10f444071fbd79bc41cfb1c536d6f7ee20f0c4ca7dec5cbd69e0074c"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -28,6 +28,14 @@
                 "sha256:37a6eed8b371f1228db08234ed7f6cfdc7817a3ed3824797e20cbb11dc2a7862"
             ],
             "version": "==0.8.0"
+        },
+        "astunparse": {
+            "hashes": [
+                "sha256:271fb1f3d7a2e3c66eab41000298860f046253d22ec96e4f024cfaf266805a8e",
+                "sha256:dab3e426715373fd76cd08bb1abe64b550f5aa494cf1e32384f26fd60961eb67"
+            ],
+            "index": "pypi",
+            "version": "==1.6.2"
         },
         "autopep8": {
             "hashes": [
@@ -56,6 +64,13 @@
                 "sha256:749f6cdcfbdc3f79258f8154bad43fced95adc632c337675d0385959895894bc"
             ],
             "version": "==1.2.5"
+        },
+        "editorconfig": {
+            "hashes": [
+                "sha256:1b0ef345f9c3a673e492cfe608ed644b236139f7fceab5c6f513a71bcaf8a56c",
+                "sha256:60d6f10b87d2572ac1581cb8c9f018163e2b13a9e49588f9fb6dc8c715a1744c"
+            ],
+            "version": "==0.12.2"
         },
         "gast": {
             "hashes": [
@@ -146,6 +161,13 @@
                 "sha256:315d6b19643ec4afd4c41c671f9f2d65ea9d787da093487a81ead7b0bac94524"
             ],
             "version": "==0.13.2"
+        },
+        "jsbeautifier": {
+            "hashes": [
+                "sha256:1e389572ade865173605471e98df4002f4b6e5235121c13f1e4497a3eac69108"
+            ],
+            "index": "pypi",
+            "version": "==1.10.0"
         },
         "keras": {
             "hashes": [

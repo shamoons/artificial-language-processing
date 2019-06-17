@@ -1,6 +1,6 @@
 .env
 .vscode/
-data/python.txt
+data/*.txt
 __pycache__/
 models/
 *.pyc
