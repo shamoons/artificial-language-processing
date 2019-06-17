@@ -4,8 +4,6 @@ from .BaseScraper import BaseScraper
 
 
 class JSScraper(BaseScraper):
-    def __init__(self, corpus_file, page=0):
-        super().__init__(corpus_file=corpus_file, page=page)
 
     def _clean_code(self, code):
         def replacer(match):
