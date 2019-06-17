@@ -1,9 +1,9 @@
 import jsbeautifier
 import re
-from .BaseScraper import BaseScraper
+from .CodeModel import CodeModel
 
 
-class JSScraper(BaseScraper):
+class JSCode(CodeModel):
 
     def _clean_code(self, code):
         def replacer(match):

@@ -1,7 +1,7 @@
-from CodeModel import CodeModel
+from CodeModel import JSCode
 
 
-codemodel = CodeModel(corpus='data/python.txt', seq_length=10)
+codemodel = JSCode(corpus='data/javascript.txt', seq_length=10)
 codemodel.gather(corpus_size=1)
 codemodel.gather(corpus_size=10)
 codemodel.gather(corpus_size=100)
