@@ -15,10 +15,11 @@ load_dotenv()
 
 
 class BaseScraper:
-    def __init__(self, page=0, min_code_size=300):
+    def __init__(self, corpus_file, page=0, min_code_size=300):
         self.g = Github(login_or_token=os.environ['GITHUB_TOKEN'], retry=5)
         self.page = page
         self.MIN_CODE_SIZE = min_code_size
+        self.CORPUS_FILE = corpus_file
 
     def _delay(self):
         if self.g.rate_limiting[0] < 15:
@@ -27,15 +28,15 @@ class BaseScraper:
             time.sleep(delay)
         return
 
-    def search_repos(self):
+    def search_repos(self, query):
         self._delay()
         return self.g.search_repositories(
-            query='stars:>=500 fork:true language:python', sort='stars', order='desc').get_page(self.page)
+            query=query, sort='stars', order='desc').get_page(self.page)
 
     def get_contents(self, repo, file_extension):
         try:
             query = "size:>" + str(self.MIN_CODE_SIZE)
-            f = open("data/python.txt", "a")
+            f = open(self.CORPUS_FILE, "a")
             code_files = self.g.search_code(
                 query=query, extension=file_extension, repo=repo.full_name)
             for code_file in code_files:
@@ -60,18 +61,7 @@ class BaseScraper:
             pass
 
     def _clean_code(self, code):
-        try:
-            parsed_code = ast.parse(code)
-        except:
-            return ''
-
-        lines = astunparse.unparse(parsed_code).split('\n')
-        new_code = ''
-        for line in lines:
-            if line.lstrip()[:1] not in ("'", '"'):
-                new_code += line + '\n'
-
-        return new_code
+        pass
 
     def next_page(self):
         self.page += 1

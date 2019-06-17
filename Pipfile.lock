@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "7ed05d128a2ebaee5cb07159369dad17c92d89a09738f06fd826a53357b37797"
+            "sha256": "f144a14f10f444071fbd79bc41cfb1c536d6f7ee20f0c4ca7dec5cbd69e0074c"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -64,6 +64,13 @@
                 "sha256:749f6cdcfbdc3f79258f8154bad43fced95adc632c337675d0385959895894bc"
             ],
             "version": "==1.2.5"
+        },
+        "editorconfig": {
+            "hashes": [
+                "sha256:1b0ef345f9c3a673e492cfe608ed644b236139f7fceab5c6f513a71bcaf8a56c",
+                "sha256:60d6f10b87d2572ac1581cb8c9f018163e2b13a9e49588f9fb6dc8c715a1744c"
+            ],
+            "version": "==0.12.2"
         },
         "gast": {
             "hashes": [
@@ -154,6 +161,13 @@
                 "sha256:315d6b19643ec4afd4c41c671f9f2d65ea9d787da093487a81ead7b0bac94524"
             ],
             "version": "==0.13.2"
+        },
+        "jsbeautifier": {
+            "hashes": [
+                "sha256:1e389572ade865173605471e98df4002f4b6e5235121c13f1e4497a3eac69108"
+            ],
+            "index": "pypi",
+            "version": "==1.10.0"
         },
         "keras": {
             "hashes": [

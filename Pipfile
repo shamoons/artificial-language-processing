@@ -17,6 +17,7 @@ sklearn = "*"
 numpy = "*"
 autopep8 = "*"
 astunparse = "*"
+jsbeautifier = "*"
 
 [requires]
 python_version = "3.6"
