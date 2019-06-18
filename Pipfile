@@ -19,6 +19,7 @@ autopep8 = "*"
 astunparse = "*"
 jsbeautifier = "*"
 subword-nmt = "*"
+sentencepiece = "*"
 
 [requires]
 python_version = "3.6"

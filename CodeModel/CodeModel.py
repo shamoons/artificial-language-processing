@@ -16,7 +16,7 @@ class CodeModel:
         self.SEQ_LENGTH = seq_length
         self.BATCH_SIZE = 10
         self._load_corpus()
-        # self._build_model()
+        # self.build_model()
 
     def _setup_callbacks(self):
         model_checkpoint = ModelCheckpoint(
@@ -25,7 +25,7 @@ class CodeModel:
             monitor='val_acc', patience=10)
         return [model_checkpoint, earlystopping_callback]
 
-    def _build_model(self, weights=None):
+    def build_model(self, weights=None):
         vocab_size = len(self._tokens) + 1
         model = Sequential()
         model.add(Embedding(input_dim=vocab_size,
@@ -53,7 +53,7 @@ class CodeModel:
         filecontents = file.read()
         file.close()
 
-        filecontents = self._sanitize(filecontents)
+        self.filecontents = self._sanitize(filecontents)
 
         tokens = self._tokenize(filecontents)
         self.tokens_in_words = [token for token in tokens]
