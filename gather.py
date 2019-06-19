@@ -1,12 +1,8 @@
+from CodeModel import PyCode
 from CodeModel import JSCode
 
 
-codemodel = JSCode(corpus='data/javascript.txt', seq_length=10)
-codemodel.tokenize()
-# codemodel.gather(corpus_size=1)
-# codemodel.gather(corpus_size=10)
-# codemodel.gather(corpus_size=100)
-# codemodel.gather(corpus_size=1000)
-# codemodel.gather(corpus_size=10000)
-# codemodel.gather(corpus_size=100000)
-# codemodel.gather(corpus_size=1000000)
+# py_codemodel = PyCode(corpus='data/python.txt', seq_length=10)
+# py_codemodel.tokenize()
+js_codemodel = JSCode(corpus='data/javascript.txt', seq_length=10)
+js_codemodel.tokenize()

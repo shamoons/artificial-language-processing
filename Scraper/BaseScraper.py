@@ -39,6 +39,7 @@ class BaseScraper:
             f = open(self.CORPUS_FILE, "a")
             code_files = self.g.search_code(
                 query=query, extension=file_extension, repo=repo.full_name)
+
             for code_file in code_files:
                 print(repo.full_name + "/" + code_file.path)
                 self._delay()
