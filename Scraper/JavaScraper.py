@@ -7,6 +7,7 @@ from .BaseScraper import BaseScraper
 class JavaScraper(BaseScraper):
 
     def _clean_code(self, code):
+        # code = self._remove_comments(code)
         return code
         try:
             esprima.parseScript(code)
