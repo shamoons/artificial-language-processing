@@ -22,8 +22,14 @@ class BaseScraper:
         self.CORPUS_FILE = corpus_file
 
     def _delay(self):
-        if self.g.rate_limiting[0] < 15:
-            delay = 15 / self.g.rate_limiting[0]
+        delay = 0
+        if self.g.rate_limiting[0] < 5:
+            delay = 240
+        elif self.g.rate_limiting[0] < 10:
+            delay = 120
+        elif self.g.rate_limiting[0] < 20:
+            delay = 60
+        if delay > 0:
             print("Invoking Sleep: ", delay, self.g.rate_limiting[0])
             time.sleep(delay)
         return
@@ -62,7 +68,7 @@ class BaseScraper:
             pass
 
     def _clean_code(self, code):
-        pass
+        return ''
 
     def next_page(self):
         self.page += 1
