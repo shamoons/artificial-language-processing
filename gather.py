@@ -1,11 +1,9 @@
-from CodeModel import CodeModel
+from CodeModel import PyCode
+from CodeModel import JSCode
 
-
-codemodel = CodeModel(corpus='data/python.txt', seq_length=10)
-codemodel.gather(corpus_size=1)
-codemodel.gather(corpus_size=10)
-codemodel.gather(corpus_size=100)
-codemodel.gather(corpus_size=1000)
-codemodel.gather(corpus_size=10000)
-codemodel.gather(corpus_size=100000)
-codemodel.gather(corpus_size=1000000)
+print("Python")
+py_codemodel = PyCode(corpus='data/python.1.txt', seq_length=10)
+py_codemodel.uniqueness_study(corpus_size=100000, runs=100)
+print("JavaScript")
+js_codemodel = JSCode(corpus='data/javascript.1.txt', seq_length=10)
+js_codemodel.uniqueness_study(corpus_size=100000, runs=100)
