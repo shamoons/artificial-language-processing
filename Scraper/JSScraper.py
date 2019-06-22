@@ -20,8 +20,7 @@ class JSScraper(BaseScraper):
             print("ERROR", e)
             print(code)
             print("\n=======\n")
-
-        # return code
+            return ''
 
     def _remove_comments(self, code):
         def replacer(match):

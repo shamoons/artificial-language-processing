@@ -4,6 +4,8 @@ import tokenize
 import io
 import numpy as np
 import re
+import pygments
+
 # from keras.models import Sequential
 # from keras.layers import Embedding, LSTM, Dropout, Dense, Activation
 # from keras.utils import to_categorical
@@ -12,11 +14,11 @@ import re
 
 class CodeModel:
     def __init__(self, corpus, seq_length=100):
-        self._corpus = corpus
-        self.SEQ_LENGTH = seq_length
-        self.BATCH_SIZE = 10
-        self._load_corpus()
-        self.all_tokens = []
+        self.corpus_file = corpus
+        # self.SEQ_LENGTH = seq_length
+        # self.BATCH_SIZE = 10
+        # self._load_corpus()
+        self.tokens = []
         # self.build_model()
 
     # def _setup_callbacks(self):
@@ -180,25 +182,42 @@ class CodeModel:
         print("\tAverage: ", np.average(counter))
         print("\tStd Dev: ", np.std(counter))
 
-    def tokenize(self):
-        pass
+    def tokenize(self, lexer, save_tokens=None):
+        tokens = np.array([], dtype='object')
+        line_count = 0
+        with open(self.corpus_file) as infile:
+            for line in infile:
+                if line_count % 1000 == 0:
+                    print("Line Count: ", line_count)
+                line_count += 1
+                line_tokens = pygments.lex(line + '\n', lexer)
+                for line_token in line_tokens:
+                    tokens = np.append(tokens, line_token[1])
+                if line_count % 10000 == 0:
+                    print("\tToken Count: ", len(tokens))
+        self.tokens = tokens
 
-    def uniqueness_study(self, corpus_size = 1000, runs = 10):
-        if len(self.all_tokens) == 0:
-            self.tokenize()
-        total_corpus_size = len(self.all_tokens)
-        print("Total Tokens: ", total_corpus_size)
+        if save_tokens != None:
+            np.save(save_tokens, self.tokens)
+
+    def uniqueness_study(self, corpus_size=1000, runs=10, load_tokens=None, save_tokens=None):
+        if load_tokens != None:
+            self.tokens = np.load(load_tokens)
+        else:
+            self.tokenize(save_tokens=save_tokens)
+        total_corpus_size = len(self.tokens)
 
         counter = []
         for i in range(runs):
             start_index = np.random.randint(0, total_corpus_size - corpus_size)
             end_index = start_index + corpus_size
-            subcorpus = self.all_tokens[start_index: end_index]
+            subcorpus = self.tokens[start_index: end_index]
 
             unique_tokens = np.unique(subcorpus)
             unique_count = len(unique_tokens)
             unique_percent = unique_count / len(subcorpus)
             counter.append(unique_percent)
-        print("Corpus Size: ", corpus_size, ' / ', total_corpus_size, 'Runs: ', runs)
+        print("Corpus Size: ", corpus_size, ' / ',
+              total_corpus_size, 'Runs: ', runs)
         print("\tAverage: ", np.average(counter))
         print("\tStd Dev: ", np.std(counter))
