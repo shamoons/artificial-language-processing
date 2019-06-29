@@ -182,7 +182,13 @@ class CodeModel:
         print("\tAverage: ", np.average(counter))
         print("\tStd Dev: ", np.std(counter))
 
-    def tokenize(self, lexer, save_tokens=None):
+    def tokenize(self, lexer=None, save_tokens=None, load_tokens=None):
+        if load_tokens != None:
+            f = open(load_tokens, 'rb')
+            self.tokens = np.load(f, allow_pickle=True)
+            [print([token]) for token in self.tokens]
+            f.close()
+            return self.tokens
         tokens = np.array([], dtype='object')
         line_count = 0
         with open(self.corpus_file) as infile:
@@ -199,12 +205,9 @@ class CodeModel:
 
         if save_tokens != None:
             np.save(save_tokens, self.tokens)
+        return self.tokens
 
-    def uniqueness_study(self, corpus_size=1000, runs=10, load_tokens=None, save_tokens=None):
-        if load_tokens != None:
-            self.tokens = np.load(load_tokens)
-        else:
-            self.tokenize(save_tokens=save_tokens)
+    def uniqueness_study(self, corpus_size=1000, runs=10):
         total_corpus_size = len(self.tokens)
 
         counter = []

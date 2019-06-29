@@ -11,4 +11,6 @@ from CodeModel import JavaCode
 
 print("Java")
 java_codemodel = JavaCode(corpus='data/java.txt')
-java_codemodel.uniqueness_study(corpus_size=1000, runs=100, save_tokens='data/javatokens.npy')
+java_codemodel.tokenize(load_tokens='data/javatokens.npy')
+java_codemodel.uniqueness_study(
+    corpus_size=1000, runs=100)
