@@ -1,16 +1,14 @@
-from CodeModel import PyCode
-from CodeModel import JSCode
-from CodeModel import JavaCode
+import argparse
+from CodeModel import CodeModel
 
-# print("Python")
-# py_codemodel = PyCode(corpus='data/python.1.txt', seq_length=10)
-# py_codemodel.uniqueness_study(corpus_size=100000, runs=100)
-# print("JavaScript")
-# js_codemodel = JSCode(corpus='data/javascript.txt')
-# js_codemodel.uniqueness_study(corpus_size=10, runs=100)
+parser = argparse.ArgumentParser()
+parser.add_argument('--lang', required=True,
+                    choices=['javascript', 'python', 'java'])
 
-print("Java")
-java_codemodel = JavaCode(corpus='data/java.txt')
-java_codemodel.tokenize(load_tokens='data/javatokens.npy')
-java_codemodel.uniqueness_study(
-    corpus_size=1000, runs=100)
+args = parser.parse_args()
+
+language = args.lang
+
+code_model = CodeModel(corpus=f"data/{language}.txt", language=language)
+code_model.tokenize(load_tokens=f"data/{language}_tokens.npy")
+code_model.uniqueness_study(corpus_size=1000, runs=100)

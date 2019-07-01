@@ -4,3 +4,4 @@ data/*.txt
 __pycache__/
 models/
 *.pyc
+data/*.npy
