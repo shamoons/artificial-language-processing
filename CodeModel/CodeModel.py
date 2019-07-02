@@ -113,37 +113,27 @@ class CodeModel:
 
     def tokenize(self, save_tokens=None, load_tokens=None):
         if load_tokens is not None:
-            f = open(load_tokens, 'rb')
-            self.tokens = np.load(f, allow_pickle=True)
-            [print(token) for token in self.tokens]
-            print(self.tokens)
-            f.close()
+            self.tokens = np.load(load_tokens, allow_pickle=True)
+            [print([token]) for token in self.tokens]
             return self.tokens
 
-        if save_tokens is not None:
-            token_file = open(save_tokens, 'ab')
-
-        tokens = np.array([], dtype='object')
+        self.tokens = np.array([], dtype='object')
         line_count = 0
-        tokens_to_save = np.array([], dtype='object')
         with open(self.corpus_file) as infile:
             for line in infile:
                 if line_count % 1000 == 0:
                     print("Line Count: ", line_count, '')
                     if save_tokens is not None:
-                        np.save(token_file, tokens_to_save)
-                        tokens_to_save = np.array([], dtype='object')
+                        np.save(save_tokens, self.tokens)
                 line_count += 1
                 line_tokens = pygments.lex(line + '\n', self.lexer)
                 for line_token in line_tokens:
-                    tokens = np.append(tokens, line_token[1])
-                    tokens_to_save = np.append(tokens_to_save, line_token[1])
+                    self.tokens = np.append(self.tokens, line_token[1])
                 if line_count % 10000 == 0:
-                    print("\tToken Count: ", len(tokens))
-        self.tokens = tokens
+                    print("\tToken Count: ", len(self.tokens))
 
         if save_tokens is not None:
-            np.save(token_file, tokens_to_save)
+            np.save(save_tokens, self.tokens)
         return self.tokens
 
     def uniqueness_study(self, corpus_size=1000, runs=10):
