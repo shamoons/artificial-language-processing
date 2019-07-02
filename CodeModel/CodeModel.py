@@ -114,7 +114,7 @@ class CodeModel:
     def tokenize(self, save_tokens=None, load_tokens=None):
         if load_tokens is not None:
             self.tokens = np.load(load_tokens, allow_pickle=True)
-            [print([token]) for token in self.tokens]
+            # [print([token]) for token in self.tokens]
             return self.tokens
 
         self.tokens = np.array([], dtype='object')

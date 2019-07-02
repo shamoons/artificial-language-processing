@@ -29,6 +29,8 @@ class BaseScraper:
             delay = 120
         elif self.g.rate_limiting[0] < 20:
             delay = 60
+        elif self.g.rate_limiting[0] < 30:
+            delay = 30
         if delay > 0:
             print("Invoking Sleep: ", delay, self.g.rate_limiting[0])
             time.sleep(delay)
