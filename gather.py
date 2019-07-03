@@ -19,4 +19,4 @@ if args.save.lower() == 'true':
     code_model.tokenize(save_tokens=f"data/{language}_tokens.npy")
 elif args.load.lower() == 'true':
     code_model.tokenize(load_tokens=f"data/{language}_tokens.npy")
-code_model.uniqueness_study(corpus_size=10000000, runs=100)
+code_model.uniqueness_study(corpus_size=100000, runs=100)
